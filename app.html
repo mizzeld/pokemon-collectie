@@ -1218,19 +1218,11 @@ input[type=file]{display:none;}
   font-family:'Press Start 2P', monospace; word-break:break-word;
 }
 
-/* ---------- POKEDEX kaart-info (klik op één kaart op de kaarten-pagina) ---------- */
-.dexcardinfo-body{ padding:16px 18px 22px; text-align:center; }
-.dexcardinfo-art{ margin:0 auto 12px; max-width:200px; }
-.dexcardinfo-art img{ width:100%; border-radius:8px; display:block; }
-.dexcardinfo-name{ font-size:14px; color:#fff; margin-bottom:6px; }
-.dexcardinfo-set{ font-size:9px; color:var(--dex-red); margin-bottom:14px; }
-.dexcardinfo-rows{ text-align:left; border-top:2px solid #2a2a2a; padding-top:6px; margin-bottom:16px; }
-.dexcardinfo-link{
-  display:block; width:100%; padding:12px; border-radius:8px; box-sizing:border-box;
-  border:2px solid var(--dex-red); background:transparent; color:var(--dex-red);
-  font-family:'Press Start 2P', monospace; font-size:9px; text-decoration:none;
-}
-.dexcardinfo-link:hover{ background:var(--dex-red); color:#fff; }
+/* POKEDEX kaart-info (klik op één kaart op de kaarten-pagina) gebruikt
+   bewust GEEN eigen pixel-CSS -- die popup hergebruikt de bestaande
+   .card3d-stage/.pricecards/.ladder-wrap/.closebar-componenten van de
+   normale kaart-detailweergave (zie openCatalogCard), inclusief hun eigen,
+   voor cijfers/grafieken leesbaardere lettertype. */
 
 /* Share/import: a plain textarea holding a copy/paste code, since this app
    has no server to host a real shareable link. */
@@ -1452,7 +1444,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
      rariteit, uitgavedatum en prijs van die specifieke print. Gewone
      (niet-volledig-scherm) popup, dus sluiten via wegtikken of het kruisje. -->
 <div class="overlay" id="dexCardInfoOverlay">
-  <div class="sheet pixeldex" id="dexCardInfoSheet"></div>
+  <div class="sheet" id="dexCardInfoSheet"></div>
 </div>
 
 <main id="jachtgidsMain" style="display:none;">
@@ -7992,6 +7984,11 @@ async function dexFetchAllCards(name){
       image: (c.images && (c.images.small || c.images.large)) || null,
       imageLarge: (c.images && (c.images.large || c.images.small)) || null,
       setName: (c.set && c.set.name) || null,
+      // pokemontcg.io's echte set-id (bv. "sv3pt5") -- nodig om deze kaart
+      // aan dezelfde prijsgeschiedenis-opslag (catalogHistKey) te koppelen
+      // die de "Zoeken"-setpagina's al gebruiken, zodat de kaart-infopopup
+      // hieronder dezelfde prijstrend-grafiek kan tonen.
+      setId: (c.set && c.set.id) || null,
       number: c.number || null,
       rarity: c.rarity || null,
       // pokemontcg.io geeft de setdatum als "jjjj/mm/dd" -- dat sorteert prima
@@ -8011,7 +8008,7 @@ async function dexFetchAllCards(name){
       cards = (Array.isArray(list) ? list : []).map(c => ({
         image: c.image ? c.image + '/high.webp' : null,
         imageLarge: c.image ? c.image + '/high.webp' : null,
-        setName: null, number: c.localId || null, rarity: null, releaseDate: null,
+        setName: null, setId: null, number: c.localId || null, rarity: null, releaseDate: null,
         price: { raw: null, source: null }
       })).filter(c => c.image);
     }catch(e2){ cards = []; }
@@ -8075,6 +8072,11 @@ async function openDexCardsPage(id, name){
     loading.style.display = 'none';
     grid.style.display = '';
     dexCardsPageCards = cards;
+    // Zelfde opslag als de "Zoeken"-setpagina's (recordCatalogSnapshotsBatch):
+    // vandaag 1x de huidige prijs van elke kaart hier vastleggen, zodat de
+    // prijstrend-grafiek in de infopopup meteen een eerste punt heeft i.p.v.
+    // pas te beginnen zodra je toevallig ook via Zoeken langskomt.
+    recordDexCardsSnapshotsBatch(cards);
     grid.innerHTML = cards.map((c,i) => `
       <div class="dexcards-tile" data-idx="${i}">
         <img loading="lazy" src="${escapeHtml(c.image)}" onerror="this.closest('.dexcards-tile').style.display='none'">
@@ -8092,42 +8094,84 @@ async function openDexCardsPage(id, name){
 }
 document.getElementById('closeDexCardsX').onclick = ()=> document.getElementById('dexCardsOverlay').classList.remove('show');
 
-// Klik op een losse kaart op de kaarten-pagina: toont die specifieke print
-// groter, met set, nummer, rariteit, uitgavedatum en (indien bekend) de
-// actuele prijs -- dezelfde prijsbron als de rest van de app.
-function dexFormatReleaseDate(d){
-  if(!d) return null;
-  const m = String(d).match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
-  if(!m) return d;
-  const maanden = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
-  return maanden[parseInt(m[2],10)-1] + ' ' + m[1];
+// Zelfde patroon als recordCatalogSnapshotsBatch() (voor een hele set), maar
+// dan voor een lijst kaarten die elk uit een ANDERE set kunnen komen -- de
+// dex-kaartenlijst van één Pokémon overspant makkelijk tientallen sets, dus
+// er is hier geen los gedeeld setId om aan die functie door te geven. Laadt/
+// schrijft de geschiedenis-store net als daar één keer in totaal.
+function recordDexCardsSnapshotsBatch(cards){
+  const relevant = cards.filter(c => c.setId && c.price && typeof c.price.raw === 'number');
+  if(!relevant.length) return;
+  const all = loadCatalogHist();
+  const today = new Date().toISOString().slice(0,10);
+  relevant.forEach(c=>{
+    const key = catalogHistKey(c.setId, c.number);
+    const hist = all[key] || [];
+    const idx = hist.findIndex(h => h.date === today);
+    if(idx >= 0) hist[idx].raw = c.price.raw;
+    else hist.push({ date: today, raw: c.price.raw, psa10: null });
+    if(hist.length > 400) hist.splice(0, hist.length - 400);
+    all[key] = hist;
+  });
+  saveCatalogHist(all);
 }
 
+// Klik op een losse kaart op de kaarten-pagina: exact dezelfde infopopup als
+// bij het klikken op een kaart in een set via "Zoeken" (openCatalogCard) --
+// 3D kaart om te draaien, marktprijs, prijstrend-grafiek (opgebouwd in
+// dezelfde gedeelde geschiedenis-opslag) en live-prijslinks. Bewust GEEN
+// pixel-lettertype hier (dat leest slecht voor prijzen/grafieken) -- dit is
+// dezelfde vertrouwde stijl als de rest van de app, alleen bereikt vanuit de
+// Pokédex.
 function openDexCardInfo(idx){
   const c = dexCardsPageCards[idx];
   if(!c) return;
-  const overlay = document.getElementById('dexCardInfoOverlay');
-  const sheet = document.getElementById('dexCardInfoSheet');
-  const setLabel = [c.setName, c.number ? '#'+c.number : null].filter(Boolean).join(' · ') || 'Onbekende set';
-  const releaseLabel = dexFormatReleaseDate(c.releaseDate);
-  const priceLabel = (c.price && typeof c.price.raw === 'number') ? fmt(c.price.raw) : null;
+  const img = (c.imageLarge || c.image)
+    ? `<img src="${escapeHtml(c.imageLarge || c.image)}" draggable="false" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">`
+    : `<div class="ph">${escapeHtml(dexCardsPageName)}<br><span style="opacity:.6">geen foto</span></div>`;
+  const setLabel = (c.setName || '') + (c.number ? ' · #' + c.number : '');
   const links = sourceLinks({ name: dexCardsPageName, set: c.setName || '' });
+  const catHist = c.setId ? (loadCatalogHist()[catalogHistKey(c.setId, c.number)] || []) : [];
+  const raw = (c.price && typeof c.price.raw === 'number') ? c.price.raw : null;
 
-  sheet.innerHTML = `
+  document.getElementById('dexCardInfoSheet').innerHTML = `
     <div class="grabber"></div>
-    <div class="dexcardinfo-body">
-      <div class="dexcardinfo-art"><img src="${escapeHtml(c.imageLarge || c.image)}" alt="${escapeHtml(dexCardsPageName)}"></div>
-      <div class="dexcardinfo-name">${escapeHtml(dexCardsPageName)}</div>
-      <div class="dexcardinfo-set mono">${escapeHtml(setLabel)}</div>
-      <div class="dexcardinfo-rows">
-        ${c.rarity ? `<div class="dexdetail-row"><span>Rariteit</span><span>${escapeHtml(c.rarity)}</span></div>` : ''}
-        ${releaseLabel ? `<div class="dexdetail-row"><span>Uitgebracht</span><span>${escapeHtml(releaseLabel)}</span></div>` : ''}
-        <div class="dexdetail-row"><span>Prijs</span><span>${priceLabel ? priceLabel + (c.price.source ? ' · ' + escapeHtml(c.price.source) : '') : 'Geen actuele prijs gevonden'}</span></div>
+    <div class="card3d-stage">
+      <div class="card3d">
+        <div class="face front">${img}</div>
+        <div class="face back"><div class="pb"></div></div>
+        <div class="glare"></div>
       </div>
-      <a href="${links.tcgplayer}" target="_blank" rel="noopener" class="dexcardinfo-link">Bekijk op TCGplayer</a>
     </div>
+    <div class="card3d-hint">&#8596; sleep de kaart om 'm te draaien</div>
+    <div class="card3d-caption">
+      <h2>${escapeHtml(dexCardsPageName)}</h2>
+      <div class="setline mono">${escapeHtml(setLabel)}</div>
+      ${c.rarity ? `<div class="rarity">${escapeHtml(c.rarity)}</div>` : ''}
+    </div>
+    <div class="pricecards">
+      <div class="pricecard"><div class="l">Marktprijs</div><div class="v mono">${raw ? fmt(raw) : 'onbekend'}</div></div>
+    </div>
+    ${catHist.length >= 1 ? trendSectionHTML('dexTrend', catHist.length < 3 ? 'Prijsgeschiedenis wordt vanaf nu opgebouwd, elke keer dat je deze kaart bekijkt (max. 1 punt per dag).' : '') : ''}
+    ${c.setId ? recentSalesHTML(c.setId, c.number) : ''}
+    <div class="ladder-wrap" style="padding-top:0;">
+      <div class="ladder-title">Live prijzen bekijken</div>
+      <div style="display:flex; gap:8px;">
+        <a href="${links.ebay}" target="_blank" rel="noopener" class="addphotobtn" style="flex:1; text-align:center; text-decoration:none;">eBay</a>
+        <a href="${links.pricecharting}" target="_blank" rel="noopener" class="addphotobtn" style="flex:1; text-align:center; text-decoration:none;">PriceCharting</a>
+        <a href="${links.tcgplayer}" target="_blank" rel="noopener" class="addphotobtn" style="flex:1; text-align:center; text-decoration:none;">TCGplayer</a>
+      </div>
+    </div>
+    <div class="closebar"><button class="closebtn" id="closeDexCardInfo">Sluiten</button></div>
   `;
-  overlay.classList.add('show');
+  document.getElementById('dexCardInfoOverlay').classList.add('show');
+  document.getElementById('closeDexCardInfo').onclick = ()=> document.getElementById('dexCardInfoOverlay').classList.remove('show');
+  initCard3D(document.querySelector('#dexCardInfoSheet .card3d-stage'));
+  if(catHist.length >= 1){
+    trendState = { history: catHist, fallbackPsa10: null, timeframe: '3m', grade: 'raw' };
+    renderTrendControls('dexTrend');
+    renderTrendChart('dexTrend');
+  }
 }
 
 /* ============================= SHARE / IMPORT LISTS ============================= */
