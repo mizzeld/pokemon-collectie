@@ -1000,9 +1000,14 @@ input[type=file]{display:none;}
   /* max-width beperkt de rij tot precies 10 kolommen (10*210px + 9*16px gap) --
      op smallere vensters krimpen de kolommen vanzelf mee (auto-fill), op
      brede monitors blijft de rij op maximaal 10 staan i.p.v. steeds meer
-     kleine kaarten naast elkaar te proppen. */
+     kleine kaarten naast elkaar te proppen.
+     Bovengrens 240px (i.p.v. 1fr) voorkomt dat kaarten op "tussenmaat"-
+     schermbreedtes (waar er net geen extra kolom bij past) plots enorm
+     uitrekken om de resterende ruimte te vullen -- ze blijven nu altijd
+     ongeveer even groot, met wat lege ruimte aan het einde van de rij
+     i.p.v. een paar kaarten die twee keer zo groot worden. */
   .grid{
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 240px)) !important;
     gap:16px !important; max-width:calc(210px*10 + 16px*9); margin:0 auto;
   }
   .grid .name{ font-size:13.5px; }
