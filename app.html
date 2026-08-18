@@ -1064,6 +1064,32 @@ input[type=file]{display:none;}
   .tab.active{ background:var(--invert-bg); color:var(--invert-text); border-color:var(--invert-bg); }
 }
 
+/* Grote monitor (ruim breder dan een gewone laptop): de kaart-detailpopups
+   (.sheet, met de 3D-kaart, prijskaarten, prijstrend-grafiek, live-
+   prijsknoppen, etc. -- gebruikt door de kaart-detail, catalogus-kaart en
+   Pokedex-kaartinfo) bleven vastgeplakt op 420px breed, wat op een heel
+   breed scherm verloren klein in het midden bleef staan terwijl de rest van
+   de pagina meeschaalde. Drempel bewust hoog (2200px) gezet: heel veel
+   gewone laptops/monitors renderen al op 1920px breedte (bv. een normale
+   15"-laptop zonder schaalinstelling), en die moeten net als telefoon en
+   laptop onveranderd blijven -- dit raakt alleen echt grote schermen. */
+@media (min-width:2200px){
+  .sheet{ max-width:620px; }
+  .card3d{ width:260px; height:363px; }
+  .card3d-hint{ font-size:12px; }
+  .card3d-caption h2{ font-size:22px; }
+  .card3d-caption .setline{ font-size:14px; }
+  .card3d-caption .rarity{ font-size:12px; padding:4px 10px; }
+  .addphotobtn{ font-size:13px; padding:7px 11px; }
+  .ladder-title{ font-size:13px; }
+  .ladder-note{ font-size:12px; }
+  .pagepill{ font-size:13px; padding:7px 13px; }
+  .pricecard .l{ font-size:11px; }
+  .pricecard .v{ font-size:20px; }
+  .recent-sale-row{ font-size:14px; padding:6px 2px; }
+  .closebtn{ font-size:15px; padding:14px; }
+}
+
 /* ---------- HOLO / FOIL UTILITIES ---------- */
 .foil-border{ position:relative; }
 .foil-border::before{
