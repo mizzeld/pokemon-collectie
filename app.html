@@ -1179,14 +1179,44 @@ input[type=file]{display:none;}
 .dexdetail-row{ display:flex; justify-content:space-between; gap:10px; font-size:9px; color:#ccc; padding:7px 0; border-bottom:1px solid #222; line-height:1.6; }
 .dexdetail-row span:first-child{ color:#888; flex:0 0 auto; }
 .dexdetail-row.abilities{ align-items:flex-start; }
-.dexdetail-cards-title{ font-size:9px; color:var(--dex-red); margin:16px 0 8px; text-align:left; border-top:2px solid #2a2a2a; padding-top:14px; }
-.dexdetail-cards{
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 92px)); gap:8px;
-  min-height:20px;
+/* Knop onder de details in de infopopup die naar de aparte kaarten-pagina
+   leidt -- bewust GEEN kaartenlijst meer onder de popup zelf, zie hieronder. */
+.dexdetail-cardsbtn{
+  display:block; width:100%; margin-top:16px; padding:12px; border-radius:8px;
+  border:2px solid var(--dex-red); background:transparent; color:var(--dex-red);
+  font-family:'Press Start 2P', monospace; font-size:9px; cursor:pointer;
 }
-.dexdetail-card{ border-radius:6px; overflow:hidden; background:#222; border:1px solid #333; }
-.dexdetail-card img{ width:100%; aspect-ratio:5/7; object-fit:cover; display:block; }
-.dexdetail-cards-empty{ font-size:10px; color:#666; text-align:left; grid-column:1/-1; }
+.dexdetail-cardsbtn:hover{ background:var(--dex-red); color:#fff; }
+
+/* ---------- POKEDEX kaarten-pagina (aparte volledig-scherm pagina) ---------- */
+#dexCardsOverlay{ align-items:stretch; }
+#dexCardsOverlay .sheet{
+  width:100%; max-width:none; height:100vh; height:100dvh; max-height:100vh; max-height:100dvh;
+  border-radius:0; margin:0; position:relative; overflow-y:auto;
+}
+.dexcards-head{ display:flex; align-items:center; gap:14px; padding:56px 18px 18px; }
+.dexcards-head-art{
+  width:64px; height:64px; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  background:repeating-linear-gradient(180deg, #202020 0 6px, #1a1a1a 6px 12px); border-radius:8px; border:2px solid #333;
+}
+.dexcards-head-art img{
+  width:80%; height:80%; object-fit:contain; image-rendering:pixelated;
+  animation:dexBounce 1.4s ease-in-out infinite;
+}
+.dexcards-head-name{ font-size:14px; color:#fff; margin-bottom:6px; }
+.dexcards-head-count{ font-size:8.5px; color:var(--dex-red); line-height:1.6; }
+.dexcards-loading{ padding:40px 18px; text-align:center; }
+.dexcards-empty{ font-size:11px; color:var(--muted); }
+.dexcards-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 150px)); gap:12px;
+  padding:0 18px 30px;
+}
+.dexcards-tile{ background:#1a1a1a; border:1px solid #333; border-radius:8px; overflow:hidden; }
+.dexcards-tile img{ width:100%; aspect-ratio:5/7; object-fit:cover; display:block; }
+.dexcards-tile .cap{
+  font-size:7.5px; color:#999; padding:7px 6px 9px; line-height:1.5; text-align:center;
+  font-family:'Press Start 2P', monospace; word-break:break-word;
+}
 
 /* Share/import: a plain textarea holding a copy/paste code, since this app
    has no server to host a real shareable link. */
@@ -1392,6 +1422,16 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 <!-- POKEDEX detail-popup: klik op een tegel toont info zoals bij pokescreener -->
 <div class="overlay" id="dexDetailOverlay">
   <div class="sheet pixeldex" id="dexDetailSheet"></div>
+</div>
+
+<!-- POKEDEX kaarten-pagina: aparte volledig-scherm pagina (niet onder de
+     popup) met ALLE kaarten van de gekozen Pokémon, bereikt via de knop
+     in de infopopup -- zoals de CARDS-pagina op pokescreener.com. -->
+<div class="overlay" id="dexCardsOverlay">
+  <div class="sheet pixeldex" id="dexCardsSheet">
+    <button class="sheet-x-close" id="closeDexCardsX" title="Sluiten" aria-label="Sluiten">✕</button>
+    <div id="dexCardsPageBody"></div>
+  </div>
 </div>
 
 <main id="jachtgidsMain" style="display:none;">
@@ -7848,17 +7888,13 @@ async function openDexDetail(id){
       <div class="dexdetail-owned ${owned?'yes':'no'}">${owned ? '✓ In je collectie' : 'Nog niet in je collectie'}</div>
       <div class="dexdetail-types" id="dexDetailTypes"><div class="spinner"></div></div>
       <div class="dexdetail-stats" id="dexDetailStats"></div>
-      <div class="dexdetail-cards-title mono">KAARTEN</div>
-      <div class="dexdetail-cards" id="dexDetailCards"><div class="spinner"></div></div>
+      <button class="dexdetail-cardsbtn" id="dexViewCardsBtn">🃏 Bekijk alle kaarten</button>
     </div>
   `;
   overlay.classList.add('show');
+  document.getElementById('dexViewCardsBtn').onclick = ()=> openDexCardsPage(id, name);
 
-  // Stats en kaartenlijst zijn twee onafhankelijke, losse ophaal-acties (elk
-  // hun eigen bron/cache) -- de één laten wachten op de ander zou de popup
-  // onnodig trager laten aanvoelen.
   dexFillDetailStats(id, myToken);
-  dexFillDetailCards(name, myToken);
 }
 
 async function dexFillDetailStats(id, myToken){
@@ -7903,17 +7939,35 @@ async function dexFillDetailStats(id, myToken){
 
 const dexCardsCache = new Map(); // pokemon-naam (lowercase) -> lijst van {image,setName,number,rarity}
 
-// Haalt ALLE bestaande TCG-kaarten van deze Pokémon op (elke set/reprint),
-// niet alleen de kaart(en) die jij zelf al hebt -- net als de CARDS-tab op
-// pokescreener.com. Gebruikt dezelfde pokemontcg.io-bron als de rest van de
-// app (met TCGdex als automatische terugval, zie de uitleg daar verderop).
+// Haalt ECHT ALLE bestaande TCG-kaarten van deze Pokémon op -- elke set,
+// elke herdruk, ook de gewone commons, niet alleen chase-kaarten -- net als
+// de CARDS-pagina op pokescreener.com. Populaire Pokémon (Pikachu, Eevee...)
+// hebben makkelijk 150-300+ losse drukken over alle sets heen, dus dit loopt
+// door tot alles op is (pokemontcg.io geeft totalCount terug) i.p.v. na één
+// pagina te stoppen -- anders zouden net de talrijke, minder zeldzame prints
+// stilzwijgend wegvallen. Cap op 6 pagina's (1500 kaarten) is puur een
+// backstop tegen een oneindige lus, geen enkele Pokémon komt daar ook maar
+// in de buurt.
 async function dexFetchAllCards(name){
   const key = name.toLowerCase();
   if(dexCardsCache.has(key)) return dexCardsCache.get(key);
   let cards = [];
   try{
-    const list = await ptcgioQuery('name:"' + name + '"', 60);
-    cards = list.map(c => ({
+    const pageSize = 250;
+    let page = 1;
+    let rawCards = [];
+    let totalCount = Infinity;
+    while(rawCards.length < totalCount && page <= 6){
+      const params = new URLSearchParams({ q: 'name:"' + name + '"', pageSize: String(pageSize), page: String(page) });
+      const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
+      const json = await res.json();
+      const list = Array.isArray(json.data) ? json.data : [];
+      rawCards = rawCards.concat(list);
+      totalCount = typeof json.totalCount === 'number' ? json.totalCount : rawCards.length;
+      if(list.length < pageSize) break;
+      page++;
+    }
+    cards = rawCards.map(c => ({
       image: (c.images && (c.images.small || c.images.large)) || null,
       setName: (c.set && c.set.name) || null,
       number: c.number || null,
@@ -7921,7 +7975,7 @@ async function dexFetchAllCards(name){
     })).filter(c => c.image);
   }catch(e){
     try{
-      const list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '60' });
+      const list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '250' });
       cards = (Array.isArray(list) ? list : []).map(c => ({
         image: c.image ? c.image + '/high.webp' : null,
         setName: null, number: c.localId || null, rarity: null
@@ -7932,27 +7986,60 @@ async function dexFetchAllCards(name){
   return cards;
 }
 
-async function dexFillDetailCards(name, myToken){
-  const cardsEl0 = document.getElementById('dexDetailCards');
+// Aparte, volledig-scherm pagina (niet onder de popup, een echte eigen
+// pagina zoals de CARDS-tab op pokescreener.com) met ALLE kaarten van deze
+// Pokémon -- bereikt via de "Bekijk alle kaarten"-knop in de infopopup.
+let dexCardsPageToken = 0;
+
+async function openDexCardsPage(id, name){
+  const myToken = ++dexCardsPageToken;
+  const overlay = document.getElementById('dexCardsOverlay');
+  const body = document.getElementById('dexCardsPageBody');
+
+  body.innerHTML = `
+    <div class="dexcards-head">
+      <div class="dexcards-head-art">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <div class="dexcards-head-name">${escapeHtml(name)}</div>
+        <div class="dexcards-head-count mono" id="dexCardsCount">Kaarten zoeken…</div>
+      </div>
+    </div>
+    <div class="dexcards-loading" id="dexCardsLoading"><div class="spinner"></div></div>
+    <div class="dexcards-grid" id="dexCardsGrid" style="display:none;"></div>
+  `;
+  overlay.classList.add('show');
+
   try{
     const cards = await dexFetchAllCards(name);
-    if(myToken !== dexDetailToken) return;
-    const cardsEl = document.getElementById('dexDetailCards');
-    if(!cardsEl) return;
+    if(myToken !== dexCardsPageToken) return; // gebruiker is intussen alweer naar een andere Pokémon gegaan
+    const countEl = document.getElementById('dexCardsCount');
+    const loading = document.getElementById('dexCardsLoading');
+    const grid = document.getElementById('dexCardsGrid');
+    if(!countEl || !loading || !grid) return;
+
     if(!cards.length){
-      cardsEl.innerHTML = `<p class="dexdetail-cards-empty">Geen kaarten gevonden.</p>`;
+      loading.innerHTML = `<p class="dexcards-empty">Geen kaarten gevonden van ${escapeHtml(name)}.</p>`;
+      countEl.textContent = '0 kaarten gevonden';
       return;
     }
-    cardsEl.innerHTML = cards.map(c => `
-      <div class="dexdetail-card" title="${escapeHtml([c.setName, c.number ? '#'+c.number : null].filter(Boolean).join(' · '))}">
-        <img loading="lazy" src="${escapeHtml(c.image)}" onerror="this.closest('.dexdetail-card').style.display='none'">
+    countEl.textContent = `${cards.length} kaart${cards.length===1?'':'en'} gevonden — elke set en druk, ook commons`;
+    loading.style.display = 'none';
+    grid.style.display = '';
+    grid.innerHTML = cards.map(c => `
+      <div class="dexcards-tile">
+        <img loading="lazy" src="${escapeHtml(c.image)}" onerror="this.closest('.dexcards-tile').style.display='none'">
+        <div class="cap">${escapeHtml([c.setName, c.number ? '#'+c.number : null].filter(Boolean).join(' · ') || '—')}</div>
       </div>
     `).join('');
   }catch(e){
-    if(myToken !== dexDetailToken) return;
-    if(cardsEl0) cardsEl0.innerHTML = `<p class="dexdetail-cards-empty">Kon kaarten niet laden.</p>`;
+    if(myToken !== dexCardsPageToken) return;
+    const loading = document.getElementById('dexCardsLoading');
+    if(loading) loading.innerHTML = `<p class="dexcards-empty">Kon kaarten niet laden: ${escapeHtml(e.message)}</p>`;
   }
 }
+document.getElementById('closeDexCardsX').onclick = ()=> document.getElementById('dexCardsOverlay').classList.remove('show');
 
 /* ============================= SHARE / IMPORT LISTS ============================= */
 // This app has no backend to host a real shareable link -- instead, "sharing"
