@@ -314,6 +314,14 @@ main{padding:14px 12px 8px;}
 .alertbanner-txt span{font-size:10.5px; color:var(--muted);}
 .alertbanner-close{background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; flex:0 0 auto; padding:4px;}
 
+.weeksummary{
+  display:flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--line);
+  border-radius:12px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:var(--muted); line-height:1.5;
+}
+.weeksummary b{color:var(--text); font-weight:600;}
+.weeksummary .wk-up{color:var(--green);}
+.weeksummary .wk-down{color:var(--red);}
+
 /* ---------- PORTFOLIO CHART ---------- */
 .portfoliocard{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 14px 10px; margin-bottom:14px;}
 .pf-head{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
@@ -487,7 +495,17 @@ main{padding:14px 12px 8px;}
 #setDetailOverlay{ align-items:stretch; }
 #setDetailOverlay .sheet{
   width:100%; max-width:none; height:100vh; height:100dvh; max-height:100vh; max-height:100dvh;
-  border-radius:0; margin:0;
+  border-radius:0; margin:0; position:relative;
+}
+/* Vast kruisje rechtsboven op volledig-scherm pagina's (zoals de set-detail
+   die je via Zoeken opent) -- zodat je er niet meer voor naar onderin de
+   pagina hoeft te scrollen om op "Sluiten" te klikken. */
+.sheet-x-close{
+  position:fixed; top:14px; right:14px; z-index:5;
+  width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
+  background:var(--panel); color:var(--text); font-size:16px; line-height:1;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
 }
 .sheet-head{display:flex; gap:14px; padding:14px 18px 8px;}
 .sheet-head .img{
@@ -2052,6 +2070,16 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       </div>
 
       <div class="extrabox">
+        <div class="extrabox-title">Bijwerken</div>
+        <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 10px;">
+          Staat op je startscherm (telefoon) soms een oude versie? Tik hieronder om te controleren op de nieuwste versie.
+          Je collectie zelf blijft gewoon staan, dit ververst alleen de app zelf.
+        </p>
+        <button class="backupbtn" id="forceRefreshBtn" style="width:100%;">🔄 Controleer op nieuwe versie</button>
+        <div class="hint" id="forceRefreshStatus" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="extrabox">
         <div class="extrabox-title">Uiterlijk</div>
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <span style="font-size:13px;">Licht / donker thema</span>
@@ -2107,6 +2135,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 <!-- SET DETAIL PAGE -->
 <div class="overlay" id="setDetailOverlay">
   <div class="sheet addsheet">
+    <button class="sheet-x-close" id="closeSetDetailX" title="Sluiten" aria-label="Sluiten">✕</button>
     <div class="grabber"></div>
     <div class="body">
       <div id="setDetailHead" style="margin-bottom:10px;"></div>
@@ -4227,7 +4256,8 @@ document.getElementById('saveBtn').onclick = async ()=>{
     isGraded, gradingCompany, grade, certNumber,
     paid, qty, condition: isGraded ? null : condition,
     forTrade: false, submission: null, priceHistory,
-    added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'})
+    added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}),
+    addedISO: new Date().toISOString().slice(0,10)
   };
   collection.unshift(newCard);
   await saveCollection();
@@ -4338,7 +4368,8 @@ document.getElementById('bulkSaveBtn').onclick = async ()=>{
       page: 'nieuw', name, set,
       raw, psa10, psa9: null,
       photo: null, note: '', manual: true,
-      added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'})
+      added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}),
+      addedISO: new Date().toISOString().slice(0,10)
     });
     added++;
   });
@@ -4848,6 +4879,40 @@ async function buildPriceAlertBanner(){
   `;
 }
 
+// "Deze week"-samenvatting: hoeveel kaarten er de afgelopen 7 dagen zijn
+// toegevoegd (op basis van addedISO, alleen gezet vanaf deze update -- oudere
+// kaarten hebben dat veld niet en tellen dus terecht niet mee) plus het
+// waardeverschil van de hele collectie over diezelfde week (herbruikt
+// dezelfde portfolioHistory als de bestaande stijging/daling-banner).
+async function buildWeekSummary(){
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const weekAgoISO = weekAgo.toISOString().slice(0,10);
+  const addedCount = collection.filter(c => c.addedISO && c.addedISO >= weekAgoISO).length;
+
+  let valueDelta = null;
+  try{
+    const res = await storageAPI.get('portfolioHistory');
+    const history = (res && res.value) ? JSON.parse(res.value) : [];
+    if(history.length >= 2){
+      const today = history[history.length-1];
+      let ref = history.find(h => new Date(h.date) >= weekAgo);
+      if(!ref) ref = history[0];
+      if(ref.date !== today.date) valueDelta = today.value - ref.value;
+    }
+  }catch(e){ valueDelta = null; }
+
+  const parts = [];
+  if(addedCount > 0) parts.push(`<b>+${addedCount}</b> kaart${addedCount===1?'':'en'} toegevoegd`);
+  if(valueDelta !== null && Math.abs(valueDelta) >= 0.01){
+    const up = valueDelta > 0;
+    parts.push(`waarde <b class="${up?'wk-up':'wk-down'}">${up?'+':''}${fmt(valueDelta)}</b>`);
+  }
+  // Nooit helemaal verstoppen -- ook "niks gebeurd deze week" is nuttige
+  // informatie, en anders lijkt het net of het blokje kapot is.
+  const summaryTxt = parts.length ? parts.join(' · ') : 'nog niks toegevoegd of veranderd';
+  return `<div class="weeksummary">🗓️ <span>Deze week: ${summaryTxt}</span></div>`;
+}
+
 function dayIndex(mod){
   const d = new Date();
   const seed = d.getFullYear()*372 + d.getMonth()*31 + d.getDate();
@@ -4870,9 +4935,11 @@ async function renderHomeDashboard(){
   const codSrc = cod.photo; // only ever a verified photo -- see fetchCollectionPhotos()
   const fact = FUN_FACTS[dayIndex(FUN_FACTS.length)];
   const alertHTML = await buildPriceAlertBanner();
+  const weekSummaryHTML = await buildWeekSummary();
 
   el.innerHTML = `
     ${alertHTML}
+    ${weekSummaryHTML}
     <div class="dash-stats">
       <div class="dash-stat"><div class="num mono">${collection.length}</div><div class="lbl">Kaarten</div></div>
       <div class="dash-stat"><div class="num mono">${fmt(totalRaw)}</div><div class="lbl">Totaal raw</div></div>
@@ -6864,6 +6931,7 @@ document.getElementById('setDetailSortAsc').onclick = ()=>{
   renderSetDetailGrid();
 };
 document.getElementById('closeSetDetail').onclick = ()=> document.getElementById('setDetailOverlay').classList.remove('show');
+document.getElementById('closeSetDetailX').onclick = ()=> document.getElementById('setDetailOverlay').classList.remove('show');
 
 let setsLoadedOnce = false;
 async function renderSearchPage(){
@@ -7004,7 +7072,8 @@ function openSearchDetail(idx){
         imgRef: null,
         note: '',
         manual: true,
-        added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'})
+        added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}),
+        addedISO: new Date().toISOString().slice(0,10)
       });
       await saveCollection();
       addBtn.disabled = true;
@@ -7635,6 +7704,26 @@ document.getElementById('openSettings').onclick = ()=>{
   document.getElementById('settingsOverlay').classList.add('show');
 };
 document.getElementById('closeSettings').onclick = ()=> document.getElementById('settingsOverlay').classList.remove('show');
+
+/* ============================= HANDMATIG VERVERSEN (voor "Zet op beginscherm"-apps die oude versies vasthouden) =============================
+   Verandert de URL (cache-busting query string) zodat de browser gedwongen wordt de laatste versie
+   over het netwerk op te halen i.p.v. een gecachte kopie te tonen. Ruimt ook defensief eventuele
+   Service Worker-caches op, mocht dat in de toekomst gebruikt gaan worden. */
+document.getElementById('forceRefreshBtn').onclick = async ()=>{
+  const status = document.getElementById('forceRefreshStatus');
+  status.textContent = 'Bezig met verversen...';
+  try{
+    if(window.caches && caches.keys){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  }catch(e){ console.warn('Cache opruimen mislukt (niet erg):', e.message||e); }
+  location.replace(location.pathname + '?v=' + Date.now());
+};
 
 /* ============================= CLAUDE API-SLEUTEL (AI-beeldherkenning, optioneel) =============================
    Bewust NIET onderdeel van collectionForStorage()/backup-export -- deze sleutel mag nooit in een
