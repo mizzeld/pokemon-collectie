@@ -2898,14 +2898,37 @@ async function tcgdexFindImage(name, storedSetText){
   return { image: best.image + '/high.webp', imgRef: [best.id, best.image, 'tcgdex'] };
 }
 
+// TCGdex geeft setlogo's terug als een KALE basis-URL zonder extensie -- er
+// bestaat geen vaste extensie die altijd werkt (bleek vooral bij Japanse
+// sets: die bleven helemaal onzichtbaar met een hardcoded ".png"). Deze
+// helper bouwt een <img> die bij een mislukte load automatisch .webp en
+// daarna .png probeert voordat het logo alsnog verborgen wordt.
+// pokemontcg.io's logo's zijn altijd al een kant-en-klare, werkende URL
+// (met eigen extensie) -- die laden gewoon in 1 keer goed en raken deze
+// terugval-keten dus nooit aan.
+function logoImgHTML(url, name, extraAttrs){
+  if(!url) return '';
+  const stem = String(url).replace(/\.(png|webp|jpg|jpeg|svg)$/i, '');
+  return `<img ${extraAttrs||''} src="${escapeHtml(url)}" alt="${escapeHtml(name||'')}" data-logostem="${escapeHtml(stem)}" data-logotry="0" onerror="logoImgRetry(this)">`;
+}
+function logoImgRetry(img){
+  const exts = ['.webp', '.png'];
+  const n = parseInt(img.dataset.logotry || '0', 10);
+  if(n >= exts.length){ img.style.display = 'none'; return; }
+  img.dataset.logotry = String(n + 1);
+  img.src = img.dataset.logostem + exts[n];
+}
+
 // Reshapes TCGdex's set list into the exact {id, name, images:{logo}, releaseDate}
 // shape the rest of the app already expects from pokemontcg.io, so
 // renderSetGrid()/jgComputeSetValues()/etc. don't need to know which source they got.
+// images.logo blijft bewust de KALE URL (zie logoImgHTML hierboven) i.p.v.
+// hier al een gegokte extensie vast te plakken.
 async function tcgdexFetchSets(){
   const list = await tcgdexQuery('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
   return (Array.isArray(list) ? list : []).map(s => ({
     id: s.id, name: s.name,
-    images: { logo: s.logo ? s.logo + '.png' : null },
+    images: { logo: s.logo || null },
     releaseDate: s.releaseDate || '',
     lang: 'en'
   }));
@@ -5404,8 +5427,12 @@ let allSetsJa = null;
 async function fetchAllSetsJa(){
   if(allSetsJa) return allSetsJa;
   try{
-    const cached = localStorage.getItem('pkc_tcgdex_ja_sets');
-    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_ts');
+    // _v2: cache-key opgehoogd omdat de v1-cache (mogelijk al in iemands
+    // browser) logo-URL's met een hardcoded, kapotte ".png" bevat -- zie
+    // logoImgHTML() hierboven. Zo pakt iedereen automatisch de gefixte
+    // (kale) URL's op i.p.v. tot 7 dagen op de oude, kapotte cache te blijven zitten.
+    const cached = localStorage.getItem('pkc_tcgdex_ja_sets_v2');
+    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_v2_ts');
     if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 7*24*60*60*1000){
       allSetsJa = JSON.parse(cached);
       return allSetsJa;
@@ -5414,13 +5441,13 @@ async function fetchAllSetsJa(){
   const list = await tcgdexQueryJa('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
   allSetsJa = (Array.isArray(list) ? list : []).map(s => ({
     id: s.id, name: s.name,
-    images: { logo: s.logo ? s.logo + '.png' : null },
+    images: { logo: s.logo || null },
     releaseDate: s.releaseDate || '',
     lang: 'ja'
   }));
   try{
-    localStorage.setItem('pkc_tcgdex_ja_sets', JSON.stringify(allSetsJa));
-    localStorage.setItem('pkc_tcgdex_ja_sets_ts', String(Date.now()));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v2', JSON.stringify(allSetsJa));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v2_ts', String(Date.now()));
   }catch(e){}
   return allSetsJa;
 }
@@ -5434,9 +5461,10 @@ function updateSetPickerLabel(){
 updateSetPickerLabel();
 
 function setSlotHTML(s){
+  const logo = s.images && s.images.logo;
   return `
     <div class="slot" data-id="${escapeHtml(s.id)}">
-      <div class="art">${s.images && s.images.logo ? `<img class="setlogo" src="${escapeHtml(s.images.logo)}" alt="${escapeHtml(s.name)}" style="object-fit:contain;padding:10px;" onerror="this.style.display='none'">` : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
+      <div class="art">${logo ? logoImgHTML(logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
       <div class="foot">
         <div class="name">${escapeHtml(s.name)}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
@@ -6337,7 +6365,7 @@ function renderPackSetGridList(sets){
   const filtered = filterVal ? sets.filter(s => s.name.toLowerCase().includes(filterVal)) : sets;
   grid.innerHTML = filtered.map(s => `
     <div class="slot" data-id="${escapeHtml(s.id)}">
-      <div class="art">${s.images && s.images.logo ? `<img class="setlogo" src="${escapeHtml(s.images.logo)}" alt="${escapeHtml(s.name)}" style="object-fit:contain;padding:10px;" onerror="this.style.display='none'">` : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
+      <div class="art">${s.images && s.images.logo ? logoImgHTML(s.images.logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
       <div class="foot">
         <div class="name">${escapeHtml(s.name)}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
@@ -6354,7 +6382,7 @@ function renderPackSetGridList(sets){
       packRealRates = null;
       packRealBuckets = null;
       const logoBox = document.getElementById('bpLogo');
-      logoBox.innerHTML = (set.images && set.images.logo) ? `<img src="${escapeHtml(set.images.logo)}" alt="${escapeHtml(set.name)}" onerror="this.style.display='none'">` : '';
+      logoBox.innerHTML = (set.images && set.images.logo) ? logoImgHTML(set.images.logo, set.name) : '';
       applyPackTheme(set);
       resetPackStage();
       renderPacksPage();
@@ -7204,7 +7232,7 @@ async function openSetDetail(set){
   const note = document.getElementById('setDetailNote');
   document.getElementById('setDetailHead').innerHTML = `
     <div style="display:flex; align-items:center; gap:10px;">
-      ${set.images && set.images.logo ? `<img src="${escapeHtml(set.images.logo)}" alt="" style="height:28px; width:auto; max-width:90px; object-fit:contain;" onerror="this.style.display='none'">` : ''}
+      ${set.images && set.images.logo ? logoImgHTML(set.images.logo, '', 'style="height:28px; width:auto; max-width:90px; object-fit:contain;"') : ''}
       <h2 style="font-size:16px; margin:0;">${escapeHtml(set.name)}</h2>
     </div>`;
   const useBtn = document.getElementById('useSetForSearch');
