@@ -5427,17 +5427,151 @@ async function fetchAllSets(){
 // {id, name, images:{logo}, releaseDate}-vorm als fetchAllSets(), plus
 // lang:'ja' zodat de rest van de app (openSetDetail, fetchCardsForSetJa)
 // weet dat er geen marktprijs bij hoort.
+// Handmatig samengestelde lijst van Japanse setlogo's, opgezocht op Bulbapedia
+// (de bekende, betrouwbare Pokemon-wiki) -- TCGdex (de gratis bron hierboven)
+// mist voor de meeste Japanse sets zowel "logo" als "symbol", vooral bij
+// recente sets. Deze lijst dekt de meeste hoofdsets van 2000 t/m nu, plus een
+// handvol klassiekers. Sleutels zijn genormaliseerd (spaties weg, punt-varianten
+// gelijkgetrokken, kleine letters) via normJaSetName() hieronder, zodat kleine
+// schrijfwijze-verschillen met TCGdex's eigen naamgeving geen gemiste match
+// veroorzaken. Geen match hier => nette terugval op TCGdex's eigen logo/symbol
+// (of, als ook die ontbreken, gewoon geen logo) -- nooit een gegokte/foute match.
+function normJaSetName(s){
+  return String(s||'')
+    .replace(/[\s\u3000]+/g, '')
+    .replace(/[・･•·]/g, '・')
+    .replace(/(…|\.{3})/g, '…')
+    .toLowerCase();
+}
+const JA_SET_LOGO_OVERRIDES = {
+  "めざめる伝説": "https://archives.bulbagarden.net/media/upload/5/59/Neo3_Logo.png",
+  "闇、そして光へ…": "https://archives.bulbagarden.net/media/upload/1/19/Neo4_Logo.png",
+  "ポケモンカード★vs": "https://archives.bulbagarden.net/media/upload/0/07/Pok%C3%A9mon_Card_VS_Logo.png",
+  "ポケモンカード★web": "https://archives.bulbagarden.net/media/upload/4/44/Pok%C3%A9mon_Card_web_Logo.png",
+  "ギンガの覇道": "https://archives.bulbagarden.net/media/upload/1/1a/DPt1_Logo.png",
+  "時の果ての絆": "https://archives.bulbagarden.net/media/upload/9/97/DPt2_Logo.png",
+  "フロンティアの鼓動": "https://archives.bulbagarden.net/media/upload/1/1d/DPt3_Logo.png",
+  "アルセウス光臨": "https://archives.bulbagarden.net/media/upload/5/58/DPt4_Logo.png",
+  "ハートゴールドコレクション・ソウルシルバーコレクション": "https://archives.bulbagarden.net/media/upload/3/3c/L1_Logo.png",
+  "よみがえる伝説": "https://archives.bulbagarden.net/media/upload/6/64/L2_Logo.png",
+  "頂上大激突": "https://archives.bulbagarden.net/media/upload/5/59/L3_Logo.png",
+  "ブラックコレクション・ホワイトコレクション": "https://archives.bulbagarden.net/media/upload/2/2e/BW1_Logo.png",
+  "レッドコレクション": "https://archives.bulbagarden.net/media/upload/7/74/BW2_Logo.png",
+  "サイコドライブ・ヘイルブリザード": "https://archives.bulbagarden.net/media/upload/5/51/BW3_Logo.png",
+  "ダークラッシュ": "https://archives.bulbagarden.net/media/upload/e/e2/BW4_Logo.png",
+  "リューズブラスト・リューノブレード": "https://archives.bulbagarden.net/media/upload/d/d1/BW5_Logo.png",
+  "フリーズボルト・コールドフレア": "https://archives.bulbagarden.net/media/upload/7/76/BW6_Logo.png",
+  "プラズマゲイル": "https://archives.bulbagarden.net/media/upload/c/c3/BW7_Logo.png",
+  "ラセンフォース・ライデンナックル": "https://archives.bulbagarden.net/media/upload/b/b7/BW8_Logo.png",
+  "メガロキャノン": "https://archives.bulbagarden.net/media/upload/5/56/BW9_Logo.png",
+  "コレクションx・コレクションy": "https://archives.bulbagarden.net/media/upload/c/c8/XY1_Logo.png",
+  "ワイルドブレイズ": "https://archives.bulbagarden.net/media/upload/a/a6/XY2_Logo.png",
+  "ライジングフィスト": "https://archives.bulbagarden.net/media/upload/7/7f/XY3_Logo.png",
+  "ファントムゲート": "https://archives.bulbagarden.net/media/upload/0/00/XY4_Logo.png",
+  "ガイアボルケーノ・タイダルストーム": "https://archives.bulbagarden.net/media/upload/d/d4/XY5_Logo.png",
+  "エメラルドブレイク": "https://archives.bulbagarden.net/media/upload/6/66/XY6_Logo.png",
+  "バンデットリング": "https://archives.bulbagarden.net/media/upload/9/9a/XY7_Logo.png",
+  "青い衝撃・赤い閃光": "https://archives.bulbagarden.net/media/upload/4/45/XY8_Logo.png",
+  "破天の怒り": "https://archives.bulbagarden.net/media/upload/d/da/XY9_Logo.png",
+  "めざめる超王": "https://archives.bulbagarden.net/media/upload/8/8b/XY10_Logo.png",
+  "爆熱の闘士・冷酷の反逆者": "https://archives.bulbagarden.net/media/upload/6/68/XY11_Logo.png",
+  "コレクションサン・コレクションムーン": "https://archives.bulbagarden.net/media/upload/a/a2/SM1_Logo.png",
+  "キミを待つ島々・アローラの月光": "https://archives.bulbagarden.net/media/upload/e/e4/SM2_Logo.png",
+  "闘う虹を見たか・光を喰らう闇": "https://archives.bulbagarden.net/media/upload/4/45/SM3_Logo.png",
+  "覚醒の勇者・超次元の暴獣": "https://archives.bulbagarden.net/media/upload/8/81/SM5_Logo.png",
+  "ウルトラサン・ウルトラムーン": "https://archives.bulbagarden.net/media/upload/8/81/SM5_Logo.png",
+  "禁断の光": "https://archives.bulbagarden.net/media/upload/2/25/SM6_Logo.png",
+  "裂空のカリスマ": "https://archives.bulbagarden.net/media/upload/9/90/SM7_Logo.png",
+  "超爆インパクト": "https://archives.bulbagarden.net/media/upload/2/26/SM8_Logo.png",
+  "タッグボルト": "https://archives.bulbagarden.net/media/upload/c/c0/SM9_Logo.png",
+  "ダブルブレイズ": "https://archives.bulbagarden.net/media/upload/c/c7/SM10_Logo.png",
+  "ミラクルツイン": "https://archives.bulbagarden.net/media/upload/2/26/SM11_Logo.png",
+  "オルタージェネシス": "https://archives.bulbagarden.net/media/upload/4/42/SM12_Logo.png",
+  "サン&ムーン": "https://archives.bulbagarden.net/media/upload/d/d1/SM1Plus_Logo.png",
+  "新たなる試練の向こう": "https://archives.bulbagarden.net/media/upload/1/1a/SM2Plus_Logo.png",
+  "ひかる伝説": "https://archives.bulbagarden.net/media/upload/7/75/SM3Plus_Logo.png",
+  "ウルトラフォース": "https://archives.bulbagarden.net/media/upload/f/f9/SM5Plus_Logo.png",
+  "ドラゴンストーム": "https://archives.bulbagarden.net/media/upload/d/db/SM6a_Logo.png",
+  "チャンピオンロード": "https://archives.bulbagarden.net/media/upload/f/fa/SM6b_Logo.png",
+  "迅雷スパーク": "https://archives.bulbagarden.net/media/upload/7/70/SM7a_Logo.png",
+  "フェアリーライズ": "https://archives.bulbagarden.net/media/upload/6/63/SM7b_Logo.png",
+  "ダークオーダー": "https://archives.bulbagarden.net/media/upload/4/49/SM8a_Logo.png",
+  "ナイトユニゾン": "https://archives.bulbagarden.net/media/upload/3/35/SM9a_Logo.png",
+  "フルメタルウォール": "https://archives.bulbagarden.net/media/upload/d/df/SM9b_Logo.png",
+  "ジージーエンド": "https://archives.bulbagarden.net/media/upload/4/4b/SM10a_Logo.png",
+  "スカイレジェンド": "https://archives.bulbagarden.net/media/upload/5/5d/SM10b_Logo.png",
+  "リミックスバウト": "https://archives.bulbagarden.net/media/upload/0/0a/SM11a_Logo.png",
+  "ドリームリーグ": "https://archives.bulbagarden.net/media/upload/d/d3/SM11b_Logo.png",
+  "gxバトルブースト": "https://archives.bulbagarden.net/media/upload/7/71/SM4Plus_Logo.png",
+  "gxウルトラシャイニー": "https://archives.bulbagarden.net/media/upload/8/86/SM8b_Logo.png",
+  "tagteamgxタッグオールスターズ": "https://archives.bulbagarden.net/media/upload/4/44/SM12a_Logo.png",
+  "ソード・シールド": "https://archives.bulbagarden.net/media/upload/d/d1/S1_Logo.png",
+  "反逆クラッシュ": "https://archives.bulbagarden.net/media/upload/e/e3/S2_Logo.png",
+  "ムゲンゾーン": "https://archives.bulbagarden.net/media/upload/d/d9/S3_Logo.png",
+  "仰天のボルテッカー": "https://archives.bulbagarden.net/media/upload/2/23/S4_Logo.png",
+  "一撃マスター・連撃マスター": "https://archives.bulbagarden.net/media/upload/a/a4/S5_Logo.png",
+  "白銀のランス・漆黒のガイスト": "https://archives.bulbagarden.net/media/upload/9/90/S6_Logo.png",
+  "摩天パーフェクト・蒼空ストリーム": "https://archives.bulbagarden.net/media/upload/5/58/S7_Logo.png",
+  "フュージョンアーツ": "https://archives.bulbagarden.net/media/upload/d/da/S8_Logo.png",
+  "スターバース": "https://archives.bulbagarden.net/media/upload/c/cd/S9_Logo.png",
+  "タイムゲイザー・スペースジャグラー": "https://archives.bulbagarden.net/media/upload/8/89/S10_Logo.png",
+  "ロストアビス": "https://archives.bulbagarden.net/media/upload/b/bf/S11_Logo.png",
+  "パラダイムトリガー": "https://archives.bulbagarden.net/media/upload/a/a3/S12_Logo.png",
+  "vmaxライジング": "https://archives.bulbagarden.net/media/upload/2/22/S1a_Logo.png",
+  "爆炎ウォーカー": "https://archives.bulbagarden.net/media/upload/f/ff/S2a_Logo.png",
+  "伝説の鼓動": "https://archives.bulbagarden.net/media/upload/d/d4/S3a_Logo.png",
+  "双璧のファイター": "https://archives.bulbagarden.net/media/upload/5/50/S5a_Peerless_Fighters_Logo.png",
+  "イーブイヒーローズ": "https://archives.bulbagarden.net/media/upload/1/1f/S6a_Eevee_Heroes_Logo.png",
+  "25thanniversarycollection": "https://archives.bulbagarden.net/media/upload/a/a3/S8a_25th_Anniversary_Collection_Logo.png",
+  "バトルリージョン": "https://archives.bulbagarden.net/media/upload/c/cb/S9a_Battle_Region_Logo.png",
+  "ダークファンタズマ": "https://archives.bulbagarden.net/media/upload/f/f7/S10a_Dark_Phantasma_Logo.png",
+  "ポケモンgo": "https://archives.bulbagarden.net/media/upload/f/f6/Pok%C3%A9mon_GO_logo.png",
+  "白熱のアルカナ": "https://archives.bulbagarden.net/media/upload/6/60/S11a_Incandescent_Arcana_Logo.png",
+  "シャイニースターv": "https://archives.bulbagarden.net/media/upload/1/10/S4a_Logo.png",
+  "vmaxクライマックス": "https://archives.bulbagarden.net/media/upload/4/4d/S8b_VMAX_Climax_Logo.png",
+  "vstarユニバース": "https://archives.bulbagarden.net/media/upload/4/42/S12a_VSTAR_Universe_Logo.png",
+  "スカーレットex": "https://archives.bulbagarden.net/media/upload/f/fb/SV1S_Logo_JP.png",
+  "バイオレットex": "https://archives.bulbagarden.net/media/upload/a/a6/SV1V_Logo_JP.png",
+  "スノーハザード・クレイバースト": "https://archives.bulbagarden.net/media/upload/0/06/SV2_Logo_JP.png",
+  "黒炎の支配者": "https://archives.bulbagarden.net/media/upload/a/aa/SV3_Logo_JP.png",
+  "古代の咆哮・未来の一閃": "https://archives.bulbagarden.net/media/upload/8/8e/SV4_Logo_JP.png",
+  "ワイルドフォース・サイバージャッジ": "https://archives.bulbagarden.net/media/upload/e/e3/SV5_Logo_JP.png",
+  "変幻の仮面": "https://archives.bulbagarden.net/media/upload/e/ed/SV6_Logo_JP.png",
+  "ステラミラクル": "https://archives.bulbagarden.net/media/upload/6/69/SV7_Logo_JP.png",
+  "超電ブレイカー": "https://archives.bulbagarden.net/media/upload/f/f3/SV8_Logo_JP.png",
+  "バトルパートナーズ": "https://archives.bulbagarden.net/media/upload/b/b4/SV9_Logo_JP.png",
+  "ロケット団の栄光": "https://archives.bulbagarden.net/media/upload/9/97/SV10_Logo_JP.png",
+  "ブラックボルト・ホワイトフレア": "https://archives.bulbagarden.net/media/upload/f/f4/SV11_Logo_JP.png",
+  "トリプレットビート": "https://archives.bulbagarden.net/media/upload/7/70/SV1a_Triplet_Beat_Logo.png",
+  "ポケモンカード151": "https://archives.bulbagarden.net/media/upload/1/12/SV2a_Pok%C3%A9mon_Card_151_Logo.png",
+  "レイジングサーフ": "https://archives.bulbagarden.net/media/upload/8/8f/SV3a_Raging_Surf_Logo.png",
+  "シャイニートレジャーex": "https://archives.bulbagarden.net/media/upload/f/fa/SV4a_Shiny_Treasure_ex_Logo.png",
+  "クリムゾンヘイズ": "https://archives.bulbagarden.net/media/upload/9/96/SV5a_Crimson_Haze_Logo.png",
+  "ナイトワンダラー": "https://archives.bulbagarden.net/media/upload/5/5e/SV6a_Night_Wanderer_Logo.png",
+  "楽園ドラゴーナ": "https://archives.bulbagarden.net/media/upload/1/1c/SV7a_Paradise_Dragona_Logo.png",
+  "テラスタルフェストex": "https://archives.bulbagarden.net/media/upload/9/9c/SV8a_Terastal_Fest_ex_Logo.png",
+  "熱風のアリーナ": "https://archives.bulbagarden.net/media/upload/a/a6/SV9a_Hot_Wind_Arena_Logo.png",
+  "メガブレイブ・メガシンフォニア": "https://archives.bulbagarden.net/media/upload/a/ab/M1_Logo_JP.png",
+  "インフェルノx": "https://archives.bulbagarden.net/media/upload/c/c7/M2_Logo_JP.png",
+  "megaドリームex": "https://archives.bulbagarden.net/media/upload/2/28/M2a_Logo_JP.png",
+  "ムニキスゼロ": "https://archives.bulbagarden.net/media/upload/7/70/M3_Logo_JP.png",
+  "ニンジャスピナー": "https://archives.bulbagarden.net/media/upload/a/ae/M4_Logo_JP.png",
+  "アビスアイ": "https://archives.bulbagarden.net/media/upload/7/71/M5_Logo_JP.png",
+  "ストームエメラルダ": "https://archives.bulbagarden.net/media/upload/1/10/M6_Logo_JP.png",
+  "30thcelebration": "https://archives.bulbagarden.net/media/upload/1/1f/30th_Celebration_Logo_JP.png",
+};
 let allSetsJa = null;
 async function fetchAllSetsJa(){
   if(allSetsJa) return allSetsJa;
   try{
-    // _v3: cache-key steeds opgehoogd bij elke wijziging aan hoe logo's
+    // _v4: cache-key steeds opgehoogd bij elke wijziging aan hoe logo's
     // opgebouwd worden (v2: kale URL i.p.v. hardcoded ".png"; v3: symbol als
-    // terugval wanneer logo ontbreekt) -- zonder ophoging zou iedereen tot
-    // 7 dagen op een oude cache met de vorige (kapotte/onvolledige) data
-    // blijven zitten i.p.v. de fix meteen te zien.
-    const cached = localStorage.getItem('pkc_tcgdex_ja_sets_v3');
-    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_v3_ts');
+    // terugval wanneer logo ontbreekt; v4: handmatige Bulbapedia-lijst als
+    // eerste keus) -- zonder ophoging zou iedereen tot 7 dagen op een oude
+    // cache met de vorige (kapotte/onvolledige) data blijven zitten i.p.v.
+    // de fix meteen te zien.
+    const cached = localStorage.getItem('pkc_tcgdex_ja_sets_v4');
+    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_v4_ts');
     if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 7*24*60*60*1000){
       allSetsJa = JSON.parse(cached);
       return allSetsJa;
@@ -5450,13 +5584,13 @@ async function fetchAllSetsJa(){
     // set in, vooral Japanse sets missen 'm vaker dan Engelse. "symbol" (het
     // kleine setpictogram, ook nullable) is dan het beste alternatief -- beter
     // een klein icoon tonen dan een lege tegel.
-    images: { logo: s.logo || s.symbol || null },
+    images: { logo: JA_SET_LOGO_OVERRIDES[normJaSetName(s.name)] || s.logo || s.symbol || null },
     releaseDate: s.releaseDate || '',
     lang: 'ja'
   }));
   try{
-    localStorage.setItem('pkc_tcgdex_ja_sets_v3', JSON.stringify(allSetsJa));
-    localStorage.setItem('pkc_tcgdex_ja_sets_v3_ts', String(Date.now()));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v4', JSON.stringify(allSetsJa));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v4_ts', String(Date.now()));
   }catch(e){}
   return allSetsJa;
 }
