@@ -1211,12 +1211,26 @@ input[type=file]{display:none;}
   display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 150px)); gap:12px;
   padding:0 18px 30px;
 }
-.dexcards-tile{ background:#1a1a1a; border:1px solid #333; border-radius:8px; overflow:hidden; }
+.dexcards-tile{ background:#1a1a1a; border:1px solid #333; border-radius:8px; overflow:hidden; cursor:pointer; }
 .dexcards-tile img{ width:100%; aspect-ratio:5/7; object-fit:cover; display:block; }
 .dexcards-tile .cap{
   font-size:7.5px; color:#999; padding:7px 6px 9px; line-height:1.5; text-align:center;
   font-family:'Press Start 2P', monospace; word-break:break-word;
 }
+
+/* ---------- POKEDEX kaart-info (klik op één kaart op de kaarten-pagina) ---------- */
+.dexcardinfo-body{ padding:16px 18px 22px; text-align:center; }
+.dexcardinfo-art{ margin:0 auto 12px; max-width:200px; }
+.dexcardinfo-art img{ width:100%; border-radius:8px; display:block; }
+.dexcardinfo-name{ font-size:14px; color:#fff; margin-bottom:6px; }
+.dexcardinfo-set{ font-size:9px; color:var(--dex-red); margin-bottom:14px; }
+.dexcardinfo-rows{ text-align:left; border-top:2px solid #2a2a2a; padding-top:6px; margin-bottom:16px; }
+.dexcardinfo-link{
+  display:block; width:100%; padding:12px; border-radius:8px; box-sizing:border-box;
+  border:2px solid var(--dex-red); background:transparent; color:var(--dex-red);
+  font-family:'Press Start 2P', monospace; font-size:9px; text-decoration:none;
+}
+.dexcardinfo-link:hover{ background:var(--dex-red); color:#fff; }
 
 /* Share/import: a plain textarea holding a copy/paste code, since this app
    has no server to host a real shareable link. */
@@ -1432,6 +1446,13 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <button class="sheet-x-close" id="closeDexCardsX" title="Sluiten" aria-label="Sluiten">✕</button>
     <div id="dexCardsPageBody"></div>
   </div>
+</div>
+
+<!-- POKEDEX kaart-info: klik op één kaart op de kaarten-pagina toont set,
+     rariteit, uitgavedatum en prijs van die specifieke print. Gewone
+     (niet-volledig-scherm) popup, dus sluiten via wegtikken of het kruisje. -->
+<div class="overlay" id="dexCardInfoOverlay">
+  <div class="sheet pixeldex" id="dexCardInfoSheet"></div>
 </div>
 
 <main id="jachtgidsMain" style="display:none;">
@@ -7969,23 +7990,29 @@ async function dexFetchAllCards(name){
     }
     cards = rawCards.map(c => ({
       image: (c.images && (c.images.small || c.images.large)) || null,
+      imageLarge: (c.images && (c.images.large || c.images.small)) || null,
       setName: (c.set && c.set.name) || null,
       number: c.number || null,
       rarity: c.rarity || null,
       // pokemontcg.io geeft de setdatum als "jjjj/mm/dd" -- dat sorteert prima
       // op alfabet/lexicografisch, dus geen aparte Date-parse nodig.
-      releaseDate: (c.set && c.set.releaseDate) || null
+      releaseDate: (c.set && c.set.releaseDate) || null,
+      // Zelfde prijsbron als de rest van de app (Cardmarket/TCGplayer via de
+      // kaartendata die pokemontcg.io al meegeeft) -- geen extra aanvraag nodig.
+      price: apiPrices(c)
     })).filter(c => c.image);
   }catch(e){
     try{
-      // TCGdex's beknopte kaartenlijst geeft geen setdatum terug (dat zou per
-      // kaart een extra losse aanvraag kosten) -- deze terugval-kaarten
-      // krijgen daardoor geen releaseDate en landen daardoor onderaan,
+      // TCGdex's beknopte kaartenlijst geeft geen setdatum of prijs terug (dat
+      // zou per kaart een extra losse aanvraag kosten) -- deze terugval-kaarten
+      // krijgen daardoor geen releaseDate/prijs en landen daardoor onderaan,
       // gesorteerd na alles waarvan de datum wel bekend is.
       const list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '250' });
       cards = (Array.isArray(list) ? list : []).map(c => ({
         image: c.image ? c.image + '/high.webp' : null,
-        setName: null, number: c.localId || null, rarity: null, releaseDate: null
+        imageLarge: c.image ? c.image + '/high.webp' : null,
+        setName: null, number: c.localId || null, rarity: null, releaseDate: null,
+        price: { raw: null, source: null }
       })).filter(c => c.image);
     }catch(e2){ cards = []; }
   }
@@ -8007,8 +8034,12 @@ async function dexFetchAllCards(name){
 // Pokémon -- bereikt via de "Bekijk alle kaarten"-knop in de infopopup.
 let dexCardsPageToken = 0;
 
+let dexCardsPageCards = []; // de kaarten die nu op de aparte kaarten-pagina staan -- klik-doel voor de infopopup
+let dexCardsPageName = '';
+
 async function openDexCardsPage(id, name){
   const myToken = ++dexCardsPageToken;
+  dexCardsPageName = name;
   const overlay = document.getElementById('dexCardsOverlay');
   const body = document.getElementById('dexCardsPageBody');
 
@@ -8043,12 +8074,16 @@ async function openDexCardsPage(id, name){
     countEl.textContent = `${cards.length} kaart${cards.length===1?'':'en'} gevonden — elke set en druk, ook commons`;
     loading.style.display = 'none';
     grid.style.display = '';
-    grid.innerHTML = cards.map(c => `
-      <div class="dexcards-tile">
+    dexCardsPageCards = cards;
+    grid.innerHTML = cards.map((c,i) => `
+      <div class="dexcards-tile" data-idx="${i}">
         <img loading="lazy" src="${escapeHtml(c.image)}" onerror="this.closest('.dexcards-tile').style.display='none'">
         <div class="cap">${escapeHtml([c.setName, c.number ? '#'+c.number : null].filter(Boolean).join(' · ') || '—')}</div>
       </div>
     `).join('');
+    grid.querySelectorAll('.dexcards-tile').forEach(el=>{
+      el.onclick = ()=> openDexCardInfo(parseInt(el.dataset.idx, 10));
+    });
   }catch(e){
     if(myToken !== dexCardsPageToken) return;
     const loading = document.getElementById('dexCardsLoading');
@@ -8056,6 +8091,44 @@ async function openDexCardsPage(id, name){
   }
 }
 document.getElementById('closeDexCardsX').onclick = ()=> document.getElementById('dexCardsOverlay').classList.remove('show');
+
+// Klik op een losse kaart op de kaarten-pagina: toont die specifieke print
+// groter, met set, nummer, rariteit, uitgavedatum en (indien bekend) de
+// actuele prijs -- dezelfde prijsbron als de rest van de app.
+function dexFormatReleaseDate(d){
+  if(!d) return null;
+  const m = String(d).match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  if(!m) return d;
+  const maanden = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  return maanden[parseInt(m[2],10)-1] + ' ' + m[1];
+}
+
+function openDexCardInfo(idx){
+  const c = dexCardsPageCards[idx];
+  if(!c) return;
+  const overlay = document.getElementById('dexCardInfoOverlay');
+  const sheet = document.getElementById('dexCardInfoSheet');
+  const setLabel = [c.setName, c.number ? '#'+c.number : null].filter(Boolean).join(' · ') || 'Onbekende set';
+  const releaseLabel = dexFormatReleaseDate(c.releaseDate);
+  const priceLabel = (c.price && typeof c.price.raw === 'number') ? fmt(c.price.raw) : null;
+  const links = sourceLinks({ name: dexCardsPageName, set: c.setName || '' });
+
+  sheet.innerHTML = `
+    <div class="grabber"></div>
+    <div class="dexcardinfo-body">
+      <div class="dexcardinfo-art"><img src="${escapeHtml(c.imageLarge || c.image)}" alt="${escapeHtml(dexCardsPageName)}"></div>
+      <div class="dexcardinfo-name">${escapeHtml(dexCardsPageName)}</div>
+      <div class="dexcardinfo-set mono">${escapeHtml(setLabel)}</div>
+      <div class="dexcardinfo-rows">
+        ${c.rarity ? `<div class="dexdetail-row"><span>Rariteit</span><span>${escapeHtml(c.rarity)}</span></div>` : ''}
+        ${releaseLabel ? `<div class="dexdetail-row"><span>Uitgebracht</span><span>${escapeHtml(releaseLabel)}</span></div>` : ''}
+        <div class="dexdetail-row"><span>Prijs</span><span>${priceLabel ? priceLabel + (c.price.source ? ' · ' + escapeHtml(c.price.source) : '') : 'Geen actuele prijs gevonden'}</span></div>
+      </div>
+      <a href="${links.tcgplayer}" target="_blank" rel="noopener" class="dexcardinfo-link">Bekijk op TCGplayer</a>
+    </div>
+  `;
+  overlay.classList.add('show');
+}
 
 /* ============================= SHARE / IMPORT LISTS ============================= */
 // This app has no backend to host a real shareable link -- instead, "sharing"
