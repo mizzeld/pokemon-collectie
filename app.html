@@ -179,6 +179,12 @@ main{padding:14px 12px 8px;}
   flex:1; position:relative; overflow:hidden; background:var(--panel2);
 }
 .slot .art img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; background:#fff;}
+/* Setlogo's (Zoeken/Packs, .slot .art img.setlogo) zijn transparante PNG's --
+   de witte achtergrond hierboven is bedoeld voor foto's van eigen kaarten
+   (die vaak een witte rand hebben), maar zorgt bij setlogo's juist voor een
+   storend wit vlak in donkere modus. Laat i.p.v. wit de gewone paneelkleur
+   van de tegel doorschijnen, zodat het in beide thema's klopt. */
+.slot .art img.setlogo{background:transparent;}
 .slot .art .placeholder{
   position:absolute; inset:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center;
   font-family:'Oswald'; font-weight:600; font-size:9.5px; text-align:center; padding:6px; line-height:1.25;
@@ -5179,7 +5185,7 @@ updateSetPickerLabel();
 function setSlotHTML(s){
   return `
     <div class="slot" data-id="${escapeHtml(s.id)}">
-      <div class="art">${s.images && s.images.logo ? `<img src="${escapeHtml(s.images.logo)}" alt="${escapeHtml(s.name)}" style="object-fit:contain;padding:10px;" onerror="this.style.display='none'">` : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
+      <div class="art">${s.images && s.images.logo ? `<img class="setlogo" src="${escapeHtml(s.images.logo)}" alt="${escapeHtml(s.name)}" style="object-fit:contain;padding:10px;" onerror="this.style.display='none'">` : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
       <div class="foot">
         <div class="name">${escapeHtml(s.name)}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
@@ -6047,7 +6053,7 @@ function renderPackSetGridList(sets){
   const filtered = filterVal ? sets.filter(s => s.name.toLowerCase().includes(filterVal)) : sets;
   grid.innerHTML = filtered.map(s => `
     <div class="slot" data-id="${escapeHtml(s.id)}">
-      <div class="art">${s.images && s.images.logo ? `<img src="${escapeHtml(s.images.logo)}" alt="${escapeHtml(s.name)}" style="object-fit:contain;padding:10px;" onerror="this.style.display='none'">` : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
+      <div class="art">${s.images && s.images.logo ? `<img class="setlogo" src="${escapeHtml(s.images.logo)}" alt="${escapeHtml(s.name)}" style="object-fit:contain;padding:10px;" onerror="this.style.display='none'">` : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
       <div class="foot">
         <div class="name">${escapeHtml(s.name)}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
