@@ -1113,13 +1113,30 @@ input[type=file]{display:none;}
 .dexgentab.active{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
 .dexgentab-count{ font-size:7px; color:#999; }
 .dexgentab.active .dexgentab-count{ color:#ffd; }
-.dexgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+/* Toolbar met de "alleen bezit"-knop boven de gen-tabs. */
+.dextoolbar{ display:flex; justify-content:flex-end; margin-bottom:10px; }
+.dexowntoggle{ font-size:8.5px; padding:9px 14px; }
+/* Vast max. 6 kolommen, ongeacht schermformaat -- zelfde aanpak als de
+   collectie-grid eerder: minmax met een GEPLAFONNEERDE max-breedte (geen
+   1fr) zodat over-gebleven ruimte witruimte wordt i.p.v. uitgerekte,
+   abnormaal grote tegels op tussenliggende schermbreedtes. auto-fill laat
+   het vanzelf terugschalen naar minder kolommen op smalle telefoons. */
+.dexgrid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 155px)) !important;
+  gap:10px !important; max-width:calc(155px*6 + 10px*5); margin:0 auto;
+}
 .dexslot{
   position:relative; background:var(--dex-panel); border:2px solid #333; border-radius:4px;
   padding:8px 6px 10px; display:flex; flex-direction:column; align-items:center; text-align:center;
+  cursor:pointer;
 }
 .dexslot.owned{ border-color:#555; }
-.dexslot-num{ align-self:flex-start; font-size:7px; color:#777; margin-bottom:2px; }
+.dexslot-num{ align-self:flex-start; font-size:8px; color:#777; margin-bottom:2px; }
+.dexslot-owned{
+  position:absolute; top:6px; right:6px; width:17px; height:17px; border-radius:50%;
+  background:var(--dex-red); color:#fff; font-size:9px; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 0 2px var(--dex-black);
+}
 .dexslot-art{
   width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
   background:repeating-linear-gradient(180deg, #202020 0 6px, #1a1a1a 6px 12px); border-radius:3px; margin-bottom:6px;
@@ -1129,15 +1146,34 @@ input[type=file]{display:none;}
   width:70%; height:70%; object-fit:contain; image-rendering:pixelated;
   animation:dexBounce 1.4s ease-in-out infinite;
 }
-.dexslot.unowned .dexslot-art img{ filter:brightness(0) invert(1) opacity(.18); }
-.dexslot-name{ font-size:8px; color:#fff; line-height:1.5; word-break:break-word; }
-.dexslot.unowned .dexslot-name{ color:#555; }
+.dexslot-name{ font-size:9px; color:#fff; line-height:1.5; word-break:break-word; }
+.dexempty{ font-size:11px; color:var(--muted); text-align:center; padding:30px 10px; grid-column:1/-1; }
 .dextype{
-  margin-top:5px; font-size:6.5px; color:#fff; padding:3px 7px; border-radius:2px; letter-spacing:.03em;
+  margin-top:5px; font-size:7.5px; color:#fff; padding:3px 7px; border-radius:2px; letter-spacing:.03em;
 }
 @keyframes dexBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
-@media (min-width:560px){ .dexgrid{ grid-template-columns:repeat(5,1fr); } }
-@media (min-width:900px){ .pixeldex .dexgrid{ grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)) !important; } }
+
+/* ---------- POKEDEX detail-popup (bij klikken op een tegel) ---------- */
+.dexdetail-body{ padding:16px 18px 22px; text-align:center; }
+.dexdetail-num{ font-size:9px; color:var(--dex-red); margin-bottom:6px; }
+.dexdetail-art{
+  width:140px; height:140px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;
+  background:repeating-linear-gradient(180deg, #202020 0 6px, #1a1a1a 6px 12px); border-radius:8px; border:2px solid #333;
+}
+.dexdetail-art img{
+  width:75%; height:75%; object-fit:contain; image-rendering:pixelated;
+  animation:dexBounce 1.4s ease-in-out infinite;
+}
+.dexdetail-name{ font-size:13px; color:#fff; margin-bottom:8px; }
+.dexdetail-owned{ font-size:8px; padding:5px 10px; border-radius:10px; display:inline-block; margin-bottom:12px; }
+.dexdetail-owned.yes{ background:var(--dex-red); color:#fff; }
+.dexdetail-owned.no{ background:#2a2a2a; color:#888; }
+.dexdetail-types{ display:flex; gap:6px; justify-content:center; margin-bottom:14px; min-height:22px; flex-wrap:wrap; }
+.dexdetail-typepill{ margin-top:0; }
+.dexdetail-stats{ text-align:left; border-top:2px solid #2a2a2a; padding-top:10px; }
+.dexdetail-row{ display:flex; justify-content:space-between; gap:10px; font-size:9px; color:#ccc; padding:7px 0; border-bottom:1px solid #222; line-height:1.6; }
+.dexdetail-row span:first-child{ color:#888; flex:0 0 auto; }
+.dexdetail-row.abilities{ align-items:flex-start; }
 
 /* Share/import: a plain textarea holding a copy/paste code, since this app
    has no server to host a real shareable link. */
@@ -1332,10 +1368,18 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 <!-- POKEDEX -->
 <main id="pokedexMain" class="pixeldex" style="display:none;">
   <div id="dexProgress"></div>
+  <div class="dextoolbar">
+    <button class="dexgentab dexowntoggle" id="dexOwnedToggle">🔍 Toon: alle Pokémon</button>
+  </div>
   <div class="dexgentabs" id="dexGenTabs"></div>
   <div class="loadingrow" id="dexLoading"><div class="spinner"></div><p>Pokédex laden…</p></div>
   <div class="dexgrid" id="dexGrid" style="display:none;"></div>
 </main>
+
+<!-- POKEDEX detail-popup: klik op een tegel toont info zoals bij pokescreener -->
+<div class="overlay" id="dexDetailOverlay">
+  <div class="sheet pixeldex" id="dexDetailSheet"></div>
+</div>
 
 <main id="jachtgidsMain" style="display:none;">
 <style>
@@ -7640,11 +7684,16 @@ function dexGenOf(id){
 
 let dexCache = null; // { species, typeMap, ownedIds } -- ophalen kost meerdere API-calls, dus 1x per sessie
 let dexSelectedGen = 1;
+// "Alleen bezit"-filter: uit = alle Pokémon in kleur met echte naam, aan =
+// alleen de Pokémon die je al hebt op kaart. Onthouden per apparaat.
+let dexOwnedOnly = localStorage.getItem('pkc_dex_owned_only') === '1';
+const dexDetailCache = new Map(); // pokemon-id -> volledige PokeAPI-detailresponse
 
 async function renderPokedexPage(){
   const loading = document.getElementById('dexLoading');
   const grid = document.getElementById('dexGrid');
   const genTabsEl = document.getElementById('dexGenTabs');
+  dexUpdateToggleUI();
   // species/typeMap (duur: ~18 losse API-calls) blijven de hele sessie
   // gecached; welke Pokémon je "owned" hebt wordt hier bij elk bezoek wél
   // vers herberekend uit de huidige collectie, anders zou een net
@@ -7670,6 +7719,19 @@ async function renderPokedexPage(){
     loading.innerHTML = `<p style="color:var(--red);font-size:13px;">Kon de Pokédex niet laden: ${escapeHtml(e.message)}</p>`;
   }
 }
+
+function dexUpdateToggleUI(){
+  const btn = document.getElementById('dexOwnedToggle');
+  if(!btn) return;
+  btn.classList.toggle('active', dexOwnedOnly);
+  btn.textContent = dexOwnedOnly ? '✅ Toon: alleen mijn Pokémon' : '🔍 Toon: alle Pokémon';
+}
+document.getElementById('dexOwnedToggle').onclick = ()=>{
+  dexOwnedOnly = !dexOwnedOnly;
+  try{ localStorage.setItem('pkc_dex_owned_only', dexOwnedOnly ? '1' : '0'); }catch(e){}
+  dexUpdateToggleUI();
+  if(dexCache){ dexRenderGenTabs(); dexRenderGrid(); }
+};
 
 function dexComputeOwnedIds(species){
   const bySlug = new Map(species.map(s=>[s.name, s]));
@@ -7698,8 +7760,8 @@ function dexRenderGenTabs(){
 function dexRenderGrid(){
   const { species, typeMap, ownedIds } = dexCache;
   const grid = document.getElementById('dexGrid');
-  const genSpecies = species.filter(s => dexGenOf(s.id) === dexSelectedGen);
-  const ownedInGen = genSpecies.filter(s => ownedIds.has(s.id)).length;
+  const genSpeciesAll = species.filter(s => dexGenOf(s.id) === dexSelectedGen);
+  const ownedInGen = genSpeciesAll.filter(s => ownedIds.has(s.id)).length;
 
   document.getElementById('dexProgress').innerHTML = `
     <div class="dex-progress">
@@ -7707,17 +7769,27 @@ function dexRenderGrid(){
       <div class="lbl">Pokémon verzameld in totaal (op naam — alle kaarten van dezelfde Pokémon tellen als één)</div>
       <div class="level">${dexLevelLabel(ownedIds.size)}</div>
     </div>
-    <div class="dex-gen-progress mono">GEN ${dexSelectedGen}: ${ownedInGen} / ${genSpecies.length} verzameld</div>
+    <div class="dex-gen-progress mono">GEN ${dexSelectedGen}: ${ownedInGen} / ${genSpeciesAll.length} verzameld</div>
   `;
+
+  // Uit: iedereen zien, gewoon in kleur met echte naam. Aan: alleen tonen
+  // wat je al op kaart hebt.
+  const genSpecies = dexOwnedOnly ? genSpeciesAll.filter(s => ownedIds.has(s.id)) : genSpeciesAll;
+
+  if(!genSpecies.length){
+    grid.innerHTML = `<p class="dexempty">Nog geen Pokémon uit deze generatie in je collectie.</p>`;
+    return;
+  }
 
   grid.innerHTML = genSpecies.map((s,i)=>{
     const owned = ownedIds.has(s.id);
-    const label = owned ? capWords(s.name.replace(/-/g,' ')) : '???';
-    const type = owned ? typeMap[s.id] : null;
+    const label = capWords(s.name.replace(/-/g,' '));
+    const type = typeMap[s.id];
     const tColor = type ? TYPE_COLORS[type] : null;
     return `
-    <div class="dexslot ${owned?'owned':'unowned'}" style="${tColor?`border-color:${tColor};`:''}">
+    <div class="dexslot ${owned?'owned':'unowned'}" data-id="${s.id}" style="${tColor?`border-color:${tColor};`:''}">
       <div class="dexslot-num mono">#${String(s.id).padStart(4,'0')}</div>
+      ${owned ? '<div class="dexslot-owned" title="In je collectie">✓</div>' : ''}
       <div class="dexslot-art">
         <img loading="lazy" style="animation-delay:${(i%6)*0.12}s" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${s.id}.png" onerror="this.style.display='none'">
       </div>
@@ -7725,6 +7797,79 @@ function dexRenderGrid(){
       ${type ? `<div class="dextype" style="background:${tColor};">${type.toUpperCase()}</div>` : ''}
     </div>`;
   }).join('');
+
+  grid.querySelectorAll('.dexslot').forEach(el=>{
+    el.onclick = ()=> openDexDetail(parseInt(el.dataset.id, 10));
+  });
+}
+
+// Klik op een tegel: toont dex-nummer, sprite, type(s), lengte, gewicht en
+// vaardigheden -- zoals de detailkaart op pokescreener.com. De basislijst
+// (fetchPokeSpecies/fetchPokeTypeMap) heeft dit al gedeeltelijk, maar voor
+// preciezere info (o.a. het volledige type-duo i.p.v. 1 decoratief type)
+// wordt hier per Pokémon het losse PokeAPI-detailendpoint opgehaald en
+// gecached, zodat een tweede keer klikken geen nieuwe fetch kost.
+async function openDexDetail(id){
+  if(!dexCache) return;
+  const { species, ownedIds } = dexCache;
+  const sp = species.find(s => s.id === id);
+  if(!sp) return;
+
+  const overlay = document.getElementById('dexDetailOverlay');
+  const sheet = document.getElementById('dexDetailSheet');
+  const owned = ownedIds.has(id);
+  const name = capWords(sp.name.replace(/-/g,' '));
+
+  sheet.innerHTML = `
+    <div class="grabber"></div>
+    <div class="dexdetail-body">
+      <div class="dexdetail-num mono">#${String(id).padStart(4,'0')}</div>
+      <div class="dexdetail-art">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" onerror="this.style.display='none'">
+      </div>
+      <div class="dexdetail-name">${escapeHtml(name)}</div>
+      <div class="dexdetail-owned ${owned?'yes':'no'}">${owned ? '✓ In je collectie' : 'Nog niet in je collectie'}</div>
+      <div class="dexdetail-types" id="dexDetailTypes"><div class="spinner"></div></div>
+      <div class="dexdetail-stats" id="dexDetailStats"></div>
+    </div>
+  `;
+  overlay.classList.add('show');
+
+  try{
+    let data = dexDetailCache.get(id);
+    if(!data){
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+      if(!res.ok) throw new Error('PokeAPI fout (' + res.status + ')');
+      data = await res.json();
+      dexDetailCache.set(id, data);
+    }
+    // Overlay kan intussen alweer gesloten of naar een andere Pokémon zijn --
+    // niet de verkeerde data over de huidige weergave heen renderen.
+    if(!overlay.classList.contains('show') || !document.getElementById('dexDetailTypes')) return;
+
+    const types = (data.types || []).map(t => t.type.name);
+    document.getElementById('dexDetailTypes').innerHTML = types.map(t =>
+      `<span class="dextype dexdetail-typepill" style="background:${TYPE_COLORS[t] || '#666'};">${t.toUpperCase()}</span>`
+    ).join('');
+
+    const heightM = (data.height / 10).toFixed(1);
+    const weightKg = (data.weight / 10).toFixed(1);
+    const abilities = (data.abilities || [])
+      .map(a => capWords(a.ability.name.replace(/-/g,' ')) + (a.is_hidden ? ' (verborgen)' : ''))
+      .join(', ');
+
+    document.getElementById('dexDetailStats').innerHTML = `
+      <div class="dexdetail-row"><span>Lengte</span><span>${heightM} m</span></div>
+      <div class="dexdetail-row"><span>Gewicht</span><span>${weightKg} kg</span></div>
+      <div class="dexdetail-row"><span>Basis-ervaring</span><span>${data.base_experience ?? '–'}</span></div>
+      <div class="dexdetail-row abilities"><span>Vaardigheden</span><span>${escapeHtml(abilities || '–')}</span></div>
+    `;
+  }catch(e){
+    const typesEl = document.getElementById('dexDetailTypes');
+    const statsEl = document.getElementById('dexDetailStats');
+    if(typesEl) typesEl.innerHTML = '';
+    if(statsEl) statsEl.innerHTML = `<p style="color:var(--red);font-size:11px;">Kon details niet laden: ${escapeHtml(e.message)}</p>`;
+  }
 }
 
 /* ============================= SHARE / IMPORT LISTS ============================= */
