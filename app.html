@@ -7971,17 +7971,33 @@ async function dexFetchAllCards(name){
       image: (c.images && (c.images.small || c.images.large)) || null,
       setName: (c.set && c.set.name) || null,
       number: c.number || null,
-      rarity: c.rarity || null
+      rarity: c.rarity || null,
+      // pokemontcg.io geeft de setdatum als "jjjj/mm/dd" -- dat sorteert prima
+      // op alfabet/lexicografisch, dus geen aparte Date-parse nodig.
+      releaseDate: (c.set && c.set.releaseDate) || null
     })).filter(c => c.image);
   }catch(e){
     try{
+      // TCGdex's beknopte kaartenlijst geeft geen setdatum terug (dat zou per
+      // kaart een extra losse aanvraag kosten) -- deze terugval-kaarten
+      // krijgen daardoor geen releaseDate en landen daardoor onderaan,
+      // gesorteerd na alles waarvan de datum wel bekend is.
       const list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '250' });
       cards = (Array.isArray(list) ? list : []).map(c => ({
         image: c.image ? c.image + '/high.webp' : null,
-        setName: null, number: c.localId || null, rarity: null
+        setName: null, number: c.localId || null, rarity: null, releaseDate: null
       })).filter(c => c.image);
     }catch(e2){ cards = []; }
   }
+  // Nieuwste bovenaan, oudste onderaan. Kaarten zonder bekende datum (de
+  // TCGdex-terugval, of een enkele pokemontcg.io-set zonder datumveld)
+  // krijgen geen slechte gok maar zakken gewoon consequent naar de bodem.
+  cards.sort((a, b)=>{
+    if(!a.releaseDate && !b.releaseDate) return 0;
+    if(!a.releaseDate) return 1;
+    if(!b.releaseDate) return -1;
+    return b.releaseDate.localeCompare(a.releaseDate);
+  });
   dexCardsCache.set(key, cards);
   return cards;
 }
