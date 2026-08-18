@@ -7997,7 +7997,14 @@ async function dexFetchAllCards(name){
     let rawCards = [];
     let totalCount = Infinity;
     while(rawCards.length < totalCount && page <= 6){
-      const params = new URLSearchParams({ q: 'name:"' + name + '"', pageSize: String(pageSize), page: String(page) });
+      // orderBy laten de API zelf al aflopend op setdatum teruggeven -- zelfde
+      // parameter die de gewone kaart-zoekfunctie (searchCardsViaAPI) al
+      // gebruikt en waarvan al bevestigd is dat die goed werkt. De client-
+      // side sort verderop blijft daarnaast staan als extra zekerheid (voor
+      // de TCGdex-terugval, en voor het geval de API het ooit zonder
+      // parameter teruggeeft), maar zo hoeft de juiste volgorde niet
+      // uitsluitend op die eigen sortering te vertrouwen.
+      const params = new URLSearchParams({ q: 'name:"' + name + '"', pageSize: String(pageSize), page: String(page), orderBy: '-set.releaseDate' });
       const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
       const json = await res.json();
       const list = Array.isArray(json.data) ? json.data : [];
