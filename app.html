@@ -1174,6 +1174,14 @@ input[type=file]{display:none;}
 .dexdetail-row{ display:flex; justify-content:space-between; gap:10px; font-size:9px; color:#ccc; padding:7px 0; border-bottom:1px solid #222; line-height:1.6; }
 .dexdetail-row span:first-child{ color:#888; flex:0 0 auto; }
 .dexdetail-row.abilities{ align-items:flex-start; }
+.dexdetail-cards-title{ font-size:9px; color:var(--dex-red); margin:16px 0 8px; text-align:left; border-top:2px solid #2a2a2a; padding-top:14px; }
+.dexdetail-cards{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 92px)); gap:8px;
+  min-height:20px;
+}
+.dexdetail-card{ border-radius:6px; overflow:hidden; background:#222; border:1px solid #333; }
+.dexdetail-card img{ width:100%; aspect-ratio:5/7; object-fit:cover; display:block; }
+.dexdetail-cards-empty{ font-size:10px; color:#666; text-align:left; grid-column:1/-1; }
 
 /* Share/import: a plain textarea holding a copy/paste code, since this app
    has no server to host a real shareable link. */
@@ -7803,18 +7811,21 @@ function dexRenderGrid(){
   });
 }
 
-// Klik op een tegel: toont dex-nummer, sprite, type(s), lengte, gewicht en
-// vaardigheden -- zoals de detailkaart op pokescreener.com. De basislijst
-// (fetchPokeSpecies/fetchPokeTypeMap) heeft dit al gedeeltelijk, maar voor
-// preciezere info (o.a. het volledige type-duo i.p.v. 1 decoratief type)
-// wordt hier per Pokémon het losse PokeAPI-detailendpoint opgehaald en
-// gecached, zodat een tweede keer klikken geen nieuwe fetch kost.
+// Klik op een tegel: toont dex-nummer, sprite, type(s), lengte, gewicht,
+// vaardigheden EN alle echte TCG-kaarten die van deze Pokémon bestaan --
+// zoals de detailkaart op pokescreener.com (STATS-tab + CARDS-tab in één).
+// dexDetailToken beschermt tegen een rare-conditie: als je snel na elkaar op
+// twee verschillende tegels klikt terwijl de vorige fetch nog loopt, mag die
+// oude data nooit over de nieuw-geopende Pokémon heen geschreven worden.
+let dexDetailToken = 0;
+
 async function openDexDetail(id){
   if(!dexCache) return;
   const { species, ownedIds } = dexCache;
   const sp = species.find(s => s.id === id);
   if(!sp) return;
 
+  const myToken = ++dexDetailToken;
   const overlay = document.getElementById('dexDetailOverlay');
   const sheet = document.getElementById('dexDetailSheet');
   const owned = ownedIds.has(id);
@@ -7831,10 +7842,20 @@ async function openDexDetail(id){
       <div class="dexdetail-owned ${owned?'yes':'no'}">${owned ? '✓ In je collectie' : 'Nog niet in je collectie'}</div>
       <div class="dexdetail-types" id="dexDetailTypes"><div class="spinner"></div></div>
       <div class="dexdetail-stats" id="dexDetailStats"></div>
+      <div class="dexdetail-cards-title mono">KAARTEN</div>
+      <div class="dexdetail-cards" id="dexDetailCards"><div class="spinner"></div></div>
     </div>
   `;
   overlay.classList.add('show');
 
+  // Stats en kaartenlijst zijn twee onafhankelijke, losse ophaal-acties (elk
+  // hun eigen bron/cache) -- de één laten wachten op de ander zou de popup
+  // onnodig trager laten aanvoelen.
+  dexFillDetailStats(id, myToken);
+  dexFillDetailCards(name, myToken);
+}
+
+async function dexFillDetailStats(id, myToken){
   try{
     let data = dexDetailCache.get(id);
     if(!data){
@@ -7843,12 +7864,13 @@ async function openDexDetail(id){
       data = await res.json();
       dexDetailCache.set(id, data);
     }
-    // Overlay kan intussen alweer gesloten of naar een andere Pokémon zijn --
-    // niet de verkeerde data over de huidige weergave heen renderen.
-    if(!overlay.classList.contains('show') || !document.getElementById('dexDetailTypes')) return;
+    if(myToken !== dexDetailToken) return; // popup is intussen naar iets anders gesprongen
+    const typesEl = document.getElementById('dexDetailTypes');
+    const statsEl = document.getElementById('dexDetailStats');
+    if(!typesEl || !statsEl) return;
 
     const types = (data.types || []).map(t => t.type.name);
-    document.getElementById('dexDetailTypes').innerHTML = types.map(t =>
+    typesEl.innerHTML = types.map(t =>
       `<span class="dextype dexdetail-typepill" style="background:${TYPE_COLORS[t] || '#666'};">${t.toUpperCase()}</span>`
     ).join('');
 
@@ -7858,17 +7880,71 @@ async function openDexDetail(id){
       .map(a => capWords(a.ability.name.replace(/-/g,' ')) + (a.is_hidden ? ' (verborgen)' : ''))
       .join(', ');
 
-    document.getElementById('dexDetailStats').innerHTML = `
+    statsEl.innerHTML = `
       <div class="dexdetail-row"><span>Lengte</span><span>${heightM} m</span></div>
       <div class="dexdetail-row"><span>Gewicht</span><span>${weightKg} kg</span></div>
       <div class="dexdetail-row"><span>Basis-ervaring</span><span>${data.base_experience ?? '–'}</span></div>
       <div class="dexdetail-row abilities"><span>Vaardigheden</span><span>${escapeHtml(abilities || '–')}</span></div>
     `;
   }catch(e){
+    if(myToken !== dexDetailToken) return;
     const typesEl = document.getElementById('dexDetailTypes');
     const statsEl = document.getElementById('dexDetailStats');
     if(typesEl) typesEl.innerHTML = '';
     if(statsEl) statsEl.innerHTML = `<p style="color:var(--red);font-size:11px;">Kon details niet laden: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+const dexCardsCache = new Map(); // pokemon-naam (lowercase) -> lijst van {image,setName,number,rarity}
+
+// Haalt ALLE bestaande TCG-kaarten van deze Pokémon op (elke set/reprint),
+// niet alleen de kaart(en) die jij zelf al hebt -- net als de CARDS-tab op
+// pokescreener.com. Gebruikt dezelfde pokemontcg.io-bron als de rest van de
+// app (met TCGdex als automatische terugval, zie de uitleg daar verderop).
+async function dexFetchAllCards(name){
+  const key = name.toLowerCase();
+  if(dexCardsCache.has(key)) return dexCardsCache.get(key);
+  let cards = [];
+  try{
+    const list = await ptcgioQuery('name:"' + name + '"', 60);
+    cards = list.map(c => ({
+      image: (c.images && (c.images.small || c.images.large)) || null,
+      setName: (c.set && c.set.name) || null,
+      number: c.number || null,
+      rarity: c.rarity || null
+    })).filter(c => c.image);
+  }catch(e){
+    try{
+      const list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '60' });
+      cards = (Array.isArray(list) ? list : []).map(c => ({
+        image: c.image ? c.image + '/high.webp' : null,
+        setName: null, number: c.localId || null, rarity: null
+      })).filter(c => c.image);
+    }catch(e2){ cards = []; }
+  }
+  dexCardsCache.set(key, cards);
+  return cards;
+}
+
+async function dexFillDetailCards(name, myToken){
+  const cardsEl0 = document.getElementById('dexDetailCards');
+  try{
+    const cards = await dexFetchAllCards(name);
+    if(myToken !== dexDetailToken) return;
+    const cardsEl = document.getElementById('dexDetailCards');
+    if(!cardsEl) return;
+    if(!cards.length){
+      cardsEl.innerHTML = `<p class="dexdetail-cards-empty">Geen kaarten gevonden.</p>`;
+      return;
+    }
+    cardsEl.innerHTML = cards.map(c => `
+      <div class="dexdetail-card" title="${escapeHtml([c.setName, c.number ? '#'+c.number : null].filter(Boolean).join(' · '))}">
+        <img loading="lazy" src="${escapeHtml(c.image)}" onerror="this.closest('.dexdetail-card').style.display='none'">
+      </div>
+    `).join('');
+  }catch(e){
+    if(myToken !== dexDetailToken) return;
+    if(cardsEl0) cardsEl0.innerHTML = `<p class="dexdetail-cards-empty">Kon kaarten niet laden.</p>`;
   }
 }
 
