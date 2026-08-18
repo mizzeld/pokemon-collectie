@@ -2928,7 +2928,11 @@ async function tcgdexFetchSets(){
   const list = await tcgdexQuery('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
   return (Array.isArray(list) ? list : []).map(s => ({
     id: s.id, name: s.name,
-    images: { logo: s.logo || null },
+    // TCGdex's "logo" (het volledige setplaatje) staat er lang niet voor elke
+    // set in, vooral Japanse sets missen 'm vaker dan Engelse. "symbol" (het
+    // kleine setpictogram, ook nullable) is dan het beste alternatief -- beter
+    // een klein icoon tonen dan een lege tegel.
+    images: { logo: s.logo || s.symbol || null },
     releaseDate: s.releaseDate || '',
     lang: 'en'
   }));
@@ -5427,12 +5431,13 @@ let allSetsJa = null;
 async function fetchAllSetsJa(){
   if(allSetsJa) return allSetsJa;
   try{
-    // _v2: cache-key opgehoogd omdat de v1-cache (mogelijk al in iemands
-    // browser) logo-URL's met een hardcoded, kapotte ".png" bevat -- zie
-    // logoImgHTML() hierboven. Zo pakt iedereen automatisch de gefixte
-    // (kale) URL's op i.p.v. tot 7 dagen op de oude, kapotte cache te blijven zitten.
-    const cached = localStorage.getItem('pkc_tcgdex_ja_sets_v2');
-    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_v2_ts');
+    // _v3: cache-key steeds opgehoogd bij elke wijziging aan hoe logo's
+    // opgebouwd worden (v2: kale URL i.p.v. hardcoded ".png"; v3: symbol als
+    // terugval wanneer logo ontbreekt) -- zonder ophoging zou iedereen tot
+    // 7 dagen op een oude cache met de vorige (kapotte/onvolledige) data
+    // blijven zitten i.p.v. de fix meteen te zien.
+    const cached = localStorage.getItem('pkc_tcgdex_ja_sets_v3');
+    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_v3_ts');
     if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 7*24*60*60*1000){
       allSetsJa = JSON.parse(cached);
       return allSetsJa;
@@ -5441,13 +5446,17 @@ async function fetchAllSetsJa(){
   const list = await tcgdexQueryJa('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
   allSetsJa = (Array.isArray(list) ? list : []).map(s => ({
     id: s.id, name: s.name,
-    images: { logo: s.logo || null },
+    // TCGdex's "logo" (het volledige setplaatje) staat er lang niet voor elke
+    // set in, vooral Japanse sets missen 'm vaker dan Engelse. "symbol" (het
+    // kleine setpictogram, ook nullable) is dan het beste alternatief -- beter
+    // een klein icoon tonen dan een lege tegel.
+    images: { logo: s.logo || s.symbol || null },
     releaseDate: s.releaseDate || '',
     lang: 'ja'
   }));
   try{
-    localStorage.setItem('pkc_tcgdex_ja_sets_v2', JSON.stringify(allSetsJa));
-    localStorage.setItem('pkc_tcgdex_ja_sets_v2_ts', String(Date.now()));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v3', JSON.stringify(allSetsJa));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v3_ts', String(Date.now()));
   }catch(e){}
   return allSetsJa;
 }
