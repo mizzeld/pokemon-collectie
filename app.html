@@ -23,7 +23,7 @@
      niet bij het gewoon openen van de site. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Press+Start+2P&display=swap');
 
 :root{
   --bg:#0e1012;
@@ -1079,19 +1079,65 @@ input[type=file]{display:none;}
 }
 @keyframes foilsweep{ 0%{ background-position:180% 0%; } 60%,100%{ background-position:-40% 100%; } }
 
-/* Pokedex grid: reuses .grid/.slot/.art/.foot, owned mons are shown in
-   color, not-yet-collected ones are grayed out and unnamed like a real
-   Pokedex "???" entry. */
-.slot.dex{ cursor:default; }
-.slot.dex.unowned .art img{ filter:grayscale(1) brightness(.45); }
-.dex-progress{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px; text-align:center; }
-.dex-progress .num{ font-family:'IBM Plex Mono'; font-weight:600; font-size:22px; }
-.dex-progress .lbl{ font-size:11px; color:var(--muted); margin-top:2px; }
-.dex-progress .level{
-  display:inline-block; margin-top:8px; font-family:'Oswald'; font-size:10.5px; letter-spacing:.1em;
-  text-transform:uppercase; background:rgba(255,216,107,.12); border:1px solid rgba(255,216,107,.4);
-  color:var(--g3); padding:3px 10px; border-radius:20px;
+/* ---------- POKEDEX (eigen volledig-scherm pagina, retro pixel-stijl) ----------
+   Bewust losstaand van het rustige lettertype/kleurenschema van de rest van
+   de site -- dit is expliciet gevraagd als "game-Pokedex"-uitstapje: rood/
+   zwart cartridge-thema, pixel-lettertype (Press Start 2P), en een
+   op-en-neer-bounende sprite per Pokémon zoals in de 2D-games. Alles hieronder
+   is gescoped onder .pixeldex zodat het nergens anders in de app doorlekt. */
+.pixeldex{
+  --dex-red:#e3350d; --dex-red-dark:#8c1c05; --dex-black:#111; --dex-panel:#1a1a1a;
+  font-family:'Press Start 2P', monospace; padding:14px 12px 8px;
+  image-rendering:pixelated;
 }
+.pixeldex .dex-progress{
+  background:var(--dex-panel); border:3px solid var(--dex-red); border-radius:4px;
+  padding:14px; margin-bottom:12px; text-align:center; box-shadow:0 0 0 2px var(--dex-black) inset;
+}
+.pixeldex .dex-progress .num{ font-size:20px; color:#fff; }
+.pixeldex .dex-progress .lbl{ font-size:8px; color:#aaa; margin-top:8px; line-height:1.6; }
+.pixeldex .dex-progress .level{
+  display:inline-block; margin-top:10px; font-size:8px; letter-spacing:.05em;
+  background:var(--dex-red); color:#fff; padding:5px 10px; border-radius:2px;
+}
+.pixeldex .dex-gen-progress{
+  text-align:center; font-family:'Press Start 2P',monospace; font-size:9px; color:var(--dex-red);
+  margin-bottom:14px;
+}
+.dexgentabs{ display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px; }
+.dexgentab{
+  flex:0 0 auto; font-family:'Press Start 2P', monospace; font-size:9px; color:#ccc;
+  background:var(--dex-black); border:2px solid #333; border-radius:3px; padding:8px 10px;
+  cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px; white-space:nowrap;
+}
+.dexgentab.active{ background:var(--dex-red); border-color:var(--dex-red); color:#fff; }
+.dexgentab-count{ font-size:7px; color:#999; }
+.dexgentab.active .dexgentab-count{ color:#ffd; }
+.dexgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.dexslot{
+  position:relative; background:var(--dex-panel); border:2px solid #333; border-radius:4px;
+  padding:8px 6px 10px; display:flex; flex-direction:column; align-items:center; text-align:center;
+}
+.dexslot.owned{ border-color:#555; }
+.dexslot-num{ align-self:flex-start; font-size:7px; color:#777; margin-bottom:2px; }
+.dexslot-art{
+  width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  background:repeating-linear-gradient(180deg, #202020 0 6px, #1a1a1a 6px 12px); border-radius:3px; margin-bottom:6px;
+  overflow:hidden;
+}
+.dexslot-art img{
+  width:70%; height:70%; object-fit:contain; image-rendering:pixelated;
+  animation:dexBounce 1.4s ease-in-out infinite;
+}
+.dexslot.unowned .dexslot-art img{ filter:brightness(0) invert(1) opacity(.18); }
+.dexslot-name{ font-size:8px; color:#fff; line-height:1.5; word-break:break-word; }
+.dexslot.unowned .dexslot-name{ color:#555; }
+.dextype{
+  margin-top:5px; font-size:6.5px; color:#fff; padding:3px 7px; border-radius:2px; letter-spacing:.03em;
+}
+@keyframes dexBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
+@media (min-width:560px){ .dexgrid{ grid-template-columns:repeat(5,1fr); } }
+@media (min-width:900px){ .pixeldex .dexgrid{ grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)) !important; } }
 
 /* Share/import: a plain textarea holding a copy/paste code, since this app
    has no server to host a real shareable link. */
@@ -1175,12 +1221,12 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <button class="tab" data-view="jachtgids">Jachtgids</button>
     <button class="tab" data-view="packs">Packs</button>
     <button class="tab" data-view="shop">Shop</button>
+    <button class="tab" data-view="pokedex">Pokédex</button>
   </div>
 
   <!-- HOME -->
   <div class="viewbar" id="homeBar">
     <button type="button" class="addphotobtn" id="goToWishlist" style="display:block; width:100%; text-align:center; font-size:13px; padding:9px;">💝 Verlanglijst</button>
-    <div class="bulklink" id="openPokedex" style="margin-top:10px;">🔴 Pokédex</div>
   </div>
 
   <!-- SEARCH -->
@@ -1237,6 +1283,11 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
   <div class="viewbar" id="shopBar" style="display:none;">
     <div class="hint">Boosterboxen, Elite Trainer Boxes en booster bundles van de nieuwste sets — met betrouwbare winkels en een eerlijke-prijs-check.</div>
   </div>
+
+  <!-- POKEDEX -->
+  <div class="viewbar" id="pokedexBar" style="display:none;">
+    <div class="hint">Welke Pokémon heb je al verzameld op kaart? Namen worden automatisch gekoppeld — sommige ongebruikelijke promo- of tag-team-namen worden mogelijk niet herkend.</div>
+  </div>
 </header>
 
 <main id="homeMain">
@@ -1276,6 +1327,14 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 
 <main id="shopMain" style="display:none;">
   <div id="shopBody"></div>
+</main>
+
+<!-- POKEDEX -->
+<main id="pokedexMain" class="pixeldex" style="display:none;">
+  <div id="dexProgress"></div>
+  <div class="dexgentabs" id="dexGenTabs"></div>
+  <div class="loadingrow" id="dexLoading"><div class="spinner"></div><p>Pokédex laden…</p></div>
+  <div class="dexgrid" id="dexGrid" style="display:none;"></div>
 </main>
 
 <main id="jachtgidsMain" style="display:none;">
@@ -2036,20 +2095,6 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
   </div>
 </div>
 
-<!-- POKEDEX PAGE -->
-<div class="overlay" id="pokedexOverlay">
-  <div class="sheet addsheet">
-    <div class="grabber"></div>
-    <div class="body">
-      <h2 style="font-size:16px;margin:4px 0 2px;text-align:center;">Pokédex</h2>
-      <p style="margin:0 0 10px;color:var(--muted);font-size:13px;text-align:center;">Welke Pokémon heb je al verzameld op kaart? Namen worden automatisch gekoppeld — sommige ongebruikelijke promo- of tag-team-namen worden mogelijk niet herkend.</p>
-      <div id="dexProgress"></div>
-      <div class="loadingrow" id="dexLoading"><div class="spinner"></div><p>Pokédex laden…</p></div>
-      <div class="grid" id="dexGrid" style="display:none;"></div>
-    </div>
-    <div class="closebar"><button class="closebtn" id="closeDexPage">Sluiten</button></div>
-  </div>
-</div>
 
 <!-- SHARE LIST SHEET -->
 <div class="overlay" id="shareOverlay">
@@ -4814,6 +4859,7 @@ function switchView(view){
   const hunt = view === 'jachtgids';
   const packs = view === 'packs';
   const shop = view === 'shop';
+  const dex = view === 'pokedex';
   document.getElementById('homeBar').style.display = home ? '' : 'none';
   document.getElementById('searchBar').style.display = search ? '' : 'none';
   document.getElementById('collectionBar').style.display = coll ? '' : 'none';
@@ -4822,6 +4868,7 @@ function switchView(view){
   document.getElementById('jachtgidsBar').style.display = hunt ? '' : 'none';
   document.getElementById('packsBar').style.display = packs ? '' : 'none';
   document.getElementById('shopBar').style.display = shop ? '' : 'none';
+  document.getElementById('pokedexBar').style.display = dex ? '' : 'none';
   document.getElementById('homeMain').style.display = home ? '' : 'none';
   document.getElementById('searchMain').style.display = search ? '' : 'none';
   document.getElementById('main').style.display = coll ? '' : 'none';
@@ -4830,7 +4877,8 @@ function switchView(view){
   document.getElementById('jachtgidsMain').style.display = hunt ? '' : 'none';
   document.getElementById('packsMain').style.display = packs ? '' : 'none';
   document.getElementById('shopMain').style.display = shop ? '' : 'none';
-  document.getElementById('pageTitle').textContent = home ? 'Home' : (search ? 'Zoeken' : (wish ? 'Verlanglijst' : (trade ? 'Ruilvoorraad' : (hunt ? 'Jachtgids' : (packs ? 'Pack Opening' : (shop ? 'Shop' : 'Mijn Pokémon Collectie'))))));
+  document.getElementById('pokedexMain').style.display = dex ? '' : 'none';
+  document.getElementById('pageTitle').textContent = home ? 'Home' : (search ? 'Zoeken' : (wish ? 'Verlanglijst' : (trade ? 'Ruilvoorraad' : (hunt ? 'Jachtgids' : (packs ? 'Pack Opening' : (shop ? 'Shop' : (dex ? 'Pokédex' : 'Mijn Pokémon Collectie')))))));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view === view));
   // The FABs (photo tools) only make sense for your own collection.
   document.getElementById('openAdd').style.display = coll ? '' : 'none';
@@ -4843,6 +4891,7 @@ function switchView(view){
   else if(hunt){ jgEnsureSetValues(); renderLiveSignals(); }
   else if(packs) renderPacksPage();
   else if(shop) renderShop();
+  else if(dex) renderPokedexPage();
 }
 document.querySelectorAll('.tab').forEach(t=>{
   t.onclick = ()=> switchView(t.dataset.view);
@@ -7570,51 +7619,113 @@ async function fetchPokeTypeMap(){
   return pokeTypeMap;
 }
 
+// Nationale-dex generatiegrenzen (standaard ranges) -- alles met een hoger
+// id dan de laatste bekende grens valt automatisch nog in Gen 9, zodat een
+// toekomstige kleine PokeAPI-uitbreiding niets stilzwijgend laat verdwijnen.
+const DEX_GEN_RANGES = [
+  { gen:1, min:1,   max:151 },
+  { gen:2, min:152, max:251 },
+  { gen:3, min:252, max:386 },
+  { gen:4, min:387, max:493 },
+  { gen:5, min:494, max:649 },
+  { gen:6, min:650, max:721 },
+  { gen:7, min:722, max:809 },
+  { gen:8, min:810, max:905 },
+  { gen:9, min:906, max:Infinity }
+];
+function dexGenOf(id){
+  const hit = DEX_GEN_RANGES.find(r => id >= r.min && id <= r.max);
+  return hit ? hit.gen : 9;
+}
+
+let dexCache = null; // { species, typeMap, ownedIds } -- ophalen kost meerdere API-calls, dus 1x per sessie
+let dexSelectedGen = 1;
+
 async function renderPokedexPage(){
   const loading = document.getElementById('dexLoading');
   const grid = document.getElementById('dexGrid');
+  const genTabsEl = document.getElementById('dexGenTabs');
+  // species/typeMap (duur: ~18 losse API-calls) blijven de hele sessie
+  // gecached; welke Pokémon je "owned" hebt wordt hier bij elk bezoek wél
+  // vers herberekend uit de huidige collectie, anders zou een net
+  // toegevoegde kaart niet meteen meetellen.
+  if(dexCache){
+    dexCache.ownedIds = dexComputeOwnedIds(dexCache.species);
+    dexRenderGenTabs();
+    dexRenderGrid();
+    return;
+  }
   loading.style.display = '';
   loading.innerHTML = '<div class="spinner"></div><p>Pokédex laden…</p>';
   grid.style.display = 'none';
+  genTabsEl.innerHTML = '';
   try{
     const [species, typeMap] = await Promise.all([fetchPokeSpecies(), fetchPokeTypeMap()]);
-    const bySlug = new Map(species.map(s=>[s.name, s]));
-    const ownedIds = new Set();
-    collection.forEach(c=>{
-      const hit = bySlug.get(cardNameToDexSlug(c.name));
-      if(hit) ownedIds.add(hit.id);
-    });
-    document.getElementById('dexProgress').innerHTML = `
-      <div class="dex-progress foil-border">
-        <div class="num mono">${ownedIds.size} / ${species.length}</div>
-        <div class="lbl">Pokémon verzameld (op naam — alle kaarten van dezelfde Pokémon tellen als één)</div>
-        <div class="level">${dexLevelLabel(ownedIds.size)}</div>
-      </div>`;
-    grid.innerHTML = species.map(s=>{
-      const owned = ownedIds.has(s.id);
-      const label = owned ? capWords(s.name.replace(/-/g,' ')) : '???';
-      const tColor = owned ? TYPE_COLORS[typeMap[s.id]] : null;
-      return `
-      <div class="slot dex ${owned?'owned':'unowned'}" style="${tColor?`border-color:${tColor};`:''}">
-        <div class="art" style="${tColor?`background:radial-gradient(circle at 50% 30%, ${tColor}40, var(--panel2) 70%);`:''}"><img loading="lazy" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${s.id}.png" onerror="this.style.display='none'"></div>
-        <div class="foot">
-          <div class="name">${escapeHtml(label)}</div>
-          <div class="price mono" style="color:var(--muted);">#${String(s.id).padStart(4,'0')}</div>
-        </div>
-      </div>`;
-    }).join('');
+    dexCache = { species, typeMap, ownedIds: dexComputeOwnedIds(species) };
     loading.style.display = 'none';
     grid.style.display = '';
+    dexRenderGenTabs();
+    dexRenderGrid();
   }catch(e){
     loading.innerHTML = `<p style="color:var(--red);font-size:13px;">Kon de Pokédex niet laden: ${escapeHtml(e.message)}</p>`;
   }
 }
 
-document.getElementById('openPokedex').onclick = ()=>{
-  document.getElementById('pokedexOverlay').classList.add('show');
-  renderPokedexPage();
-};
-document.getElementById('closeDexPage').onclick = ()=> document.getElementById('pokedexOverlay').classList.remove('show');
+function dexComputeOwnedIds(species){
+  const bySlug = new Map(species.map(s=>[s.name, s]));
+  const ownedIds = new Set();
+  collection.forEach(c=>{
+    const hit = bySlug.get(cardNameToDexSlug(c.name));
+    if(hit) ownedIds.add(hit.id);
+  });
+  return ownedIds;
+}
+
+function dexRenderGenTabs(){
+  const { species, ownedIds } = dexCache;
+  const genTabsEl = document.getElementById('dexGenTabs');
+  genTabsEl.innerHTML = DEX_GEN_RANGES.map(r=>{
+    const genSpecies = species.filter(s => dexGenOf(s.id) === r.gen);
+    if(!genSpecies.length) return '';
+    const owned = genSpecies.filter(s => ownedIds.has(s.id)).length;
+    return `<button class="dexgentab ${r.gen===dexSelectedGen?'active':''}" data-gen="${r.gen}">GEN ${r.gen}<span class="dexgentab-count">${owned}/${genSpecies.length}</span></button>`;
+  }).join('');
+  genTabsEl.querySelectorAll('.dexgentab').forEach(btn=>{
+    btn.onclick = ()=>{ dexSelectedGen = parseInt(btn.dataset.gen,10); dexRenderGenTabs(); dexRenderGrid(); };
+  });
+}
+
+function dexRenderGrid(){
+  const { species, typeMap, ownedIds } = dexCache;
+  const grid = document.getElementById('dexGrid');
+  const genSpecies = species.filter(s => dexGenOf(s.id) === dexSelectedGen);
+  const ownedInGen = genSpecies.filter(s => ownedIds.has(s.id)).length;
+
+  document.getElementById('dexProgress').innerHTML = `
+    <div class="dex-progress">
+      <div class="num mono">${ownedIds.size} / ${species.length}</div>
+      <div class="lbl">Pokémon verzameld in totaal (op naam — alle kaarten van dezelfde Pokémon tellen als één)</div>
+      <div class="level">${dexLevelLabel(ownedIds.size)}</div>
+    </div>
+    <div class="dex-gen-progress mono">GEN ${dexSelectedGen}: ${ownedInGen} / ${genSpecies.length} verzameld</div>
+  `;
+
+  grid.innerHTML = genSpecies.map((s,i)=>{
+    const owned = ownedIds.has(s.id);
+    const label = owned ? capWords(s.name.replace(/-/g,' ')) : '???';
+    const type = owned ? typeMap[s.id] : null;
+    const tColor = type ? TYPE_COLORS[type] : null;
+    return `
+    <div class="dexslot ${owned?'owned':'unowned'}" style="${tColor?`border-color:${tColor};`:''}">
+      <div class="dexslot-num mono">#${String(s.id).padStart(4,'0')}</div>
+      <div class="dexslot-art">
+        <img loading="lazy" style="animation-delay:${(i%6)*0.12}s" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${s.id}.png" onerror="this.style.display='none'">
+      </div>
+      <div class="dexslot-name">${escapeHtml(label)}</div>
+      ${type ? `<div class="dextype" style="background:${tColor};">${type.toUpperCase()}</div>` : ''}
+    </div>`;
+  }).join('');
+}
 
 /* ============================= SHARE / IMPORT LISTS ============================= */
 // This app has no backend to host a real shareable link -- instead, "sharing"
