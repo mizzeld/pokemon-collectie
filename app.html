@@ -305,6 +305,11 @@ main{padding:14px 12px 8px;}
   padding:8px 0; border-top:1px solid var(--line);
 }
 .mv-title + .moverrow{border-top:none; padding-top:0;}
+.moverrow-thumb{
+  flex:0 0 auto; width:30px; height:42px; border-radius:4px; overflow:hidden;
+  background:var(--panel2); border:1px solid var(--line);
+}
+.moverrow-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
 .moverrow-name{font-size:12.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .moverrow-pct{font-size:13px; font-weight:600; flex:0 0 auto;}
 .moverrow-abs{font-size:10px; color:var(--muted); flex:0 0 auto;}
@@ -5143,6 +5148,7 @@ function renderMonthlyMovers(){
 
   const moverRow = (m, isRiser) => `
     <div class="moverrow">
+      <div class="moverrow-thumb">${m.card.photo ? `<img src="${escapeHtml(m.card.photo)}" alt="" onerror="this.parentElement.style.display='none'">` : ''}</div>
       <div class="moverrow-name">${escapeHtml(m.card.name)}</div>
       <div class="moverrow-pct mono" style="color:${isRiser?'var(--green)':'var(--red)'}">${m.pct>=0?'+':''}${m.pct.toFixed(1)}%</div>
       <div class="moverrow-abs mono">${fmt(m.from)} → ${fmt(m.to)}</div>
@@ -7998,6 +8004,13 @@ function openImportSheet(){
 document.getElementById('openImportWishlist').onclick = openImportSheet;
 document.getElementById('openImportRuilen').onclick = openImportSheet;
 document.getElementById('closeImportSheet').onclick = ()=> document.getElementById('importOverlay').classList.remove('show');
+// De deelcode zelf bevat bewust geen fotolink (om 'm kort en plakbaar te
+// houden) -- na het laden zoeken we per kaart alsnog de echte foto op via
+// dezelfde pokemontcg.io-bron als de rest van de app, en vullen die er live
+// bij. importLoadToken voorkomt dat een oudere, nog lopende zoekopdracht een
+// inmiddels alwéér nieuw geplakte lijst overschrijft.
+let importLoadToken = 0;
+
 document.getElementById('loadSharedBtn').onclick = ()=>{
   const raw = document.getElementById('importCodeBox').value;
   const statusEl = document.getElementById('importStatus');
@@ -8012,9 +8025,9 @@ document.getElementById('loadSharedBtn').onclick = ()=>{
   const title = data.kind === 'wishlist' ? 'Gedeelde verlanglijst' : 'Gedeelde ruilvoorraad';
   resultWrap.innerHTML = `
     <div class="mv-title">${escapeHtml(title)} (${data.items.length})</div>
-    <div class="grid">${data.items.map(it => `
+    <div class="grid">${data.items.map((it,i) => `
       <div class="slot" style="cursor:default;">
-        <div class="art"><div class="placeholder">${escapeHtml(it.n)}</div></div>
+        <div class="art" data-import-idx="${i}"><div class="placeholder">${escapeHtml(it.n)}</div></div>
         <div class="foot">
           <div class="name">${escapeHtml(it.n)}</div>
           <div class="setline2 mono">${escapeHtml(it.s || '')}</div>
@@ -8022,7 +8035,31 @@ document.getElementById('loadSharedBtn').onclick = ()=>{
         </div>
       </div>`).join('')}</div>
   `;
+  fillImportPhotos(data.items, resultWrap);
 };
+
+async function fillImportPhotos(items, wrap){
+  const myToken = ++importLoadToken;
+  const BATCH = 5;
+  for(let i=0; i<items.length; i += BATCH){
+    if(myToken !== importLoadToken) return; // een nieuwere code is intussen geladen
+    const batch = items.slice(i, i+BATCH).map((it,bi)=>({ it, idx: i+bi }));
+    await Promise.all(batch.map(async ({it, idx})=>{
+      try{
+        const found = await ptcgioFindImage(it.n, it.s);
+        let image = found && found.image;
+        if(!image){
+          const fb = await tcgdexFindImage(it.n, it.s);
+          image = fb && fb.image;
+        }
+        if(!image || myToken !== importLoadToken) return;
+        const artEl = wrap.querySelector(`[data-import-idx="${idx}"]`);
+        if(!artEl) return;
+        artEl.innerHTML = `<img src="${escapeHtml(image)}" alt="${escapeHtml(it.n)}" onerror="this.style.display='none'">`;
+      }catch(e){ /* stille terugval -- placeholder blijft gewoon staan */ }
+    }));
+  }
+}
 
 /* ============================= THEME TOGGLE ============================= */
 function applyTheme(theme){
