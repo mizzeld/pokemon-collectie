@@ -117,6 +117,16 @@ header{
   font-size:13px; padding:6px 10px; cursor:pointer;
 }
 .currbtn.active{background:var(--invert-bg); color:var(--invert-text);}
+/* EN/JP-taalknop bovenaan de Kaarten-zoeken- en Sets-pagina's -- zelfde look
+   als .currtoggle/.currbtn hierboven, los gehouden onder een eigen naam
+   omdat de twee onafhankelijk van elkaar staan (munt is EUR/USD, dit is de
+   taal van de kaartendatabase: pokemontcg.io (EN) vs. TCGdex Japans). */
+.langtoggle{display:flex; gap:6px; margin-top:10px;}
+.langbtn{
+  flex:1; background:transparent; border:1px solid var(--line); color:var(--muted); font-family:'IBM Plex Mono'; font-weight:600;
+  font-size:12px; padding:8px 10px; border-radius:8px; cursor:pointer; text-align:center;
+}
+.langbtn.active{background:var(--invert-bg); color:var(--invert-text); border-color:var(--invert-bg);}
 .brand .tag{
   font-family:'Oswald'; font-weight:700; font-size:11px; letter-spacing:.18em;
   background:var(--red); color:#fff; padding:3px 7px; border-radius:2px;
@@ -1327,7 +1337,8 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 
   <div class="tabs">
     <button class="tab active" data-view="home">Home</button>
-    <button class="tab" data-view="search">Zoeken</button>
+    <button class="tab" data-view="cardsearch">Kaarten</button>
+    <button class="tab" data-view="sets">Sets</button>
     <button class="tab" data-view="collection">Collectie</button>
     <button class="tab" data-view="jachtgids">Jachtgids</button>
     <button class="tab" data-view="packs">Packs</button>
@@ -1340,13 +1351,25 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <button type="button" class="addphotobtn" id="goToWishlist" style="display:block; width:100%; text-align:center; font-size:13px; padding:9px;">💝 Verlanglijst</button>
   </div>
 
-  <!-- SEARCH -->
-  <div class="viewbar" id="searchBar" style="display:none;">
+  <!-- KAARTEN ZOEKEN -->
+  <div class="viewbar" id="cardsearchBar" style="display:none;">
+    <div class="langtoggle" id="searchLangToggle">
+      <button class="langbtn active" data-lang="en">🇬🇧 Engels</button>
+      <button class="langbtn" data-lang="ja">🇯🇵 Japans</button>
+    </div>
     <div class="searchrow">
       <input type="text" id="globalSearch" placeholder="Zoek elke Pokémon kaart…" autocomplete="off">
       <button class="gobtn" id="goSearch">Zoek</button>
     </div>
-    <div class="hint">Bijv. "Charizard", "Umbreon VMAX" of "Pikachu"</div>
+    <div class="hint" id="searchHint">Bijv. "Charizard", "Umbreon VMAX" of "Pikachu"</div>
+  </div>
+
+  <!-- SETS -->
+  <div class="viewbar" id="setsBar" style="display:none;">
+    <div class="langtoggle" id="setsLangToggle">
+      <button class="langbtn active" data-lang="en">🇬🇧 Engels</button>
+      <button class="langbtn" data-lang="ja">🇯🇵 Japans</button>
+    </div>
   </div>
 
   <!-- COLLECTION -->
@@ -1407,7 +1430,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
   <div id="homeChartWrap"></div>
 </main>
 
-<main id="searchMain" style="display:none;">
+<main id="cardsearchMain" style="display:none;">
   <div class="empty" id="homeEmpty">Typ een naam hierboven om kaarten te zoeken.<br><span style="opacity:.6;font-size:12px;">Je ziet dan de foto en actuele prijs van elke kaart.</span></div>
   <div class="grid" id="searchGrid" style="display:none;"></div>
   <hr class="dash-divider">
@@ -1415,6 +1438,9 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <span>Bereik: <b id="setPickerLabel">Alle sets</b></span>
     <span class="bulklink" id="clearSetChoice" style="display:none; margin:0;">✕ Wissen</span>
   </div>
+</main>
+
+<main id="setsMain" style="display:none;">
   <div class="searchrow">
     <input type="text" id="setFilterInput" placeholder="Filter sets…" autocomplete="off">
   </div>
@@ -2880,7 +2906,8 @@ async function tcgdexFetchSets(){
   return (Array.isArray(list) ? list : []).map(s => ({
     id: s.id, name: s.name,
     images: { logo: s.logo ? s.logo + '.png' : null },
-    releaseDate: s.releaseDate || ''
+    releaseDate: s.releaseDate || '',
+    lang: 'en'
   }));
 }
 
@@ -4988,7 +5015,8 @@ let currentView = 'home';
 function switchView(view){
   currentView = view;
   const home = view === 'home';
-  const search = view === 'search';
+  const cardsearch = view === 'cardsearch';
+  const sets = view === 'sets';
   const wish = view === 'wishlist';
   const coll = view === 'collection';
   const trade = view === 'ruilen';
@@ -4997,7 +5025,8 @@ function switchView(view){
   const shop = view === 'shop';
   const dex = view === 'pokedex';
   document.getElementById('homeBar').style.display = home ? '' : 'none';
-  document.getElementById('searchBar').style.display = search ? '' : 'none';
+  document.getElementById('cardsearchBar').style.display = cardsearch ? '' : 'none';
+  document.getElementById('setsBar').style.display = sets ? '' : 'none';
   document.getElementById('collectionBar').style.display = coll ? '' : 'none';
   document.getElementById('wishlistBar').style.display = wish ? '' : 'none';
   document.getElementById('ruilenBar').style.display = trade ? '' : 'none';
@@ -5006,7 +5035,8 @@ function switchView(view){
   document.getElementById('shopBar').style.display = shop ? '' : 'none';
   document.getElementById('pokedexBar').style.display = dex ? '' : 'none';
   document.getElementById('homeMain').style.display = home ? '' : 'none';
-  document.getElementById('searchMain').style.display = search ? '' : 'none';
+  document.getElementById('cardsearchMain').style.display = cardsearch ? '' : 'none';
+  document.getElementById('setsMain').style.display = sets ? '' : 'none';
   document.getElementById('main').style.display = coll ? '' : 'none';
   document.getElementById('wishlistMain').style.display = wish ? '' : 'none';
   document.getElementById('ruilenMain').style.display = trade ? '' : 'none';
@@ -5014,13 +5044,14 @@ function switchView(view){
   document.getElementById('packsMain').style.display = packs ? '' : 'none';
   document.getElementById('shopMain').style.display = shop ? '' : 'none';
   document.getElementById('pokedexMain').style.display = dex ? '' : 'none';
-  document.getElementById('pageTitle').textContent = home ? 'Home' : (search ? 'Zoeken' : (wish ? 'Verlanglijst' : (trade ? 'Ruilvoorraad' : (hunt ? 'Jachtgids' : (packs ? 'Pack Opening' : (shop ? 'Shop' : (dex ? 'Pokédex' : 'Mijn Pokémon Collectie')))))));
+  document.getElementById('pageTitle').textContent = home ? 'Home' : (cardsearch ? 'Kaarten' : (sets ? 'Sets' : (wish ? 'Verlanglijst' : (trade ? 'Ruilvoorraad' : (hunt ? 'Jachtgids' : (packs ? 'Pack Opening' : (shop ? 'Shop' : (dex ? 'Pokédex' : 'Mijn Pokémon Collectie'))))))));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view === view));
   // The FABs (photo tools) only make sense for your own collection.
   document.getElementById('openAdd').style.display = coll ? '' : 'none';
   document.getElementById('openGrade').style.display = coll ? '' : 'none';
   if(home) renderHomeDashboard();
-  else if(search) renderSearchPage();
+  else if(cardsearch) updateSetPickerLabel();
+  else if(sets) renderSetsPage();
   else if(wish) renderWishlist();
   else if(trade) renderRuilen();
   else if(coll) render();
@@ -5295,7 +5326,7 @@ async function runSearch(){
   empty.innerHTML = `<div class="loadwrap"><div class="spinner"></div><p style="margin:0;">Kaarten zoeken…</p></div>`;
 
   try{
-    searchResults = await searchCardsViaAPI(q);
+    searchResults = searchLang === 'ja' ? await searchCardsViaAPIJa(q) : await searchCardsViaAPI(q);
 
     if(searchResults.length === 0){
       empty.innerHTML = `Geen kaarten gevonden voor "${escapeHtml(q)}".<br><span style="opacity:.6;font-size:12px;">Probeer alleen de Pokémon-naam, bijv. "Umbreon".</span>`;
@@ -5348,7 +5379,10 @@ async function fetchAllSets(){
   try{
     const res = await ptcgioFetch(PTCGIO_BASE + '/sets?orderBy=-releaseDate&pageSize=250');
     const json = await res.json();
-    allSets = Array.isArray(json.data) ? json.data : [];
+    // lang:'en' getagd zodat openSetDetail()/fetchCardsForSet() weten dat dit
+    // een Engelse (pokemontcg.io) set is -- alleen relevant sinds Japanse sets
+    // via fetchAllSetsJa() ernaast bestaan, zie die functie hieronder.
+    allSets = (Array.isArray(json.data) ? json.data : []).map(s => ({...s, lang: 'en'}));
   }catch(primaryErr){
     console.warn('pokemontcg.io setlijst mislukt, val terug op TCGdex:', primaryErr.message||primaryErr);
     allSets = await tcgdexFetchSets(); // let this throw further up if TCGdex is also unreachable
@@ -5358,6 +5392,37 @@ async function fetchAllSets(){
     localStorage.setItem('pkc_ptcgio_sets_ts', String(Date.now()));
   }catch(e){}
   return allSets;
+}
+
+// Japanse setlijst -- TCGdex is hiervoor de ENIGE bron (pokemontcg.io dekt
+// alleen de Engelse/Westerse markt, geen Japanse sets), dus geen
+// primaire/terugval-opzet zoals hierboven. Zelfde 7-dagen cache en zelfde
+// {id, name, images:{logo}, releaseDate}-vorm als fetchAllSets(), plus
+// lang:'ja' zodat de rest van de app (openSetDetail, fetchCardsForSetJa)
+// weet dat er geen marktprijs bij hoort.
+let allSetsJa = null;
+async function fetchAllSetsJa(){
+  if(allSetsJa) return allSetsJa;
+  try{
+    const cached = localStorage.getItem('pkc_tcgdex_ja_sets');
+    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_ts');
+    if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 7*24*60*60*1000){
+      allSetsJa = JSON.parse(cached);
+      return allSetsJa;
+    }
+  }catch(e){}
+  const list = await tcgdexQueryJa('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
+  allSetsJa = (Array.isArray(list) ? list : []).map(s => ({
+    id: s.id, name: s.name,
+    images: { logo: s.logo ? s.logo + '.png' : null },
+    releaseDate: s.releaseDate || '',
+    lang: 'ja'
+  }));
+  try{
+    localStorage.setItem('pkc_tcgdex_ja_sets', JSON.stringify(allSetsJa));
+    localStorage.setItem('pkc_tcgdex_ja_sets_ts', String(Date.now()));
+  }catch(e){}
+  return allSetsJa;
 }
 
 function updateSetPickerLabel(){
@@ -5434,6 +5499,10 @@ function selectSetForSearch(set){
   localStorage.setItem('pkc_selected_set', JSON.stringify(selectedSet));
   updateSetPickerLabel();
   document.getElementById('setDetailOverlay').classList.remove('show');
+  // Sets en Kaarten zoeken zijn nu losse pagina's -- zonder deze switch zou de
+  // "Bereik"-melding onzichtbaar blijven staan op de Sets-pagina waar de
+  // gebruiker net vandaan komt, in plaats van op de zoekpagina waar hij hoort.
+  switchView('cardsearch');
 }
 
 /* ============================= SET DETAIL (all cards, sorted by price) ============================= */
@@ -6197,6 +6266,35 @@ async function fetchCardsForSet(set){
   return result;
 }
 
+// Japanse tegenhanger van fetchCardsForSet() hierboven -- TCGdex is hier de
+// ENIGE bron (geen pokemontcg.io-primaire poging, die kent geen Japanse
+// sets), dus geen prijsdata (hasPrices altijd false, net als bij de Engelse
+// TCGdex-terugval). renderSetDetailGrid()/openCatalogCard() hieronder kunnen
+// dit resultaat al ongewijzigd tonen -- die code gaat al netjes om met
+// hasPrices:false uit de bestaande Engelse terugvalroute.
+async function fetchCardsForSetJa(set){
+  try{
+    const cached = localStorage.getItem('pkc_setdetail_ja_v1_' + set.id);
+    const cachedTs = localStorage.getItem('pkc_setdetail_ja_v1_' + set.id + '_ts');
+    if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 24*60*60*1000){
+      return JSON.parse(cached);
+    }
+  }catch(e){}
+  let cards = [];
+  const list = await tcgdexQueryJa('/cards', { id: set.id + '*', 'pagination:itemsPerPage': '250' });
+  cards = (Array.isArray(list) ? list : []).map(card => ({
+    name: card.name, number: card.localId,
+    image: card.image ? card.image + '/high.webp' : null,
+    raw: null, psa10: null, rarity: null, types: null
+  }));
+  const result = { cards, hasPrices: false };
+  try{
+    localStorage.setItem('pkc_setdetail_ja_v1_' + set.id, JSON.stringify(result));
+    localStorage.setItem('pkc_setdetail_ja_v1_' + set.id + '_ts', String(Date.now()));
+  }catch(e){}
+  return result;
+}
+
 /* ============================= PACK OPENING ============================= */
 let packSet = null;
 let packCards = null;
@@ -6951,7 +7049,9 @@ function renderSetDetailGrid(){
         </div>
       </div>`).join('');
   } else {
-    note.textContent = 'Prijzen zijn nu niet beschikbaar (terugval-bron zonder prijsdata) -- kaarten staan op volgorde van kaartnummer.';
+    note.textContent = (setDetailSet && setDetailSet.lang === 'ja')
+      ? 'Japanse kaarten hebben geen marktprijs beschikbaar -- kaarten staan op volgorde van kaartnummer.'
+      : 'Prijzen zijn nu niet beschikbaar (terugval-bron zonder prijsdata) -- kaarten staan op volgorde van kaartnummer.';
     note.style.display = '';
     setDetailSortedCards = [...cards].sort((a,b)=> String(a.number).localeCompare(String(b.number), undefined, {numeric:true}));
     grid.innerHTML = setDetailSortedCards.map((c,i) => `
@@ -7107,13 +7207,18 @@ async function openSetDetail(set){
       ${set.images && set.images.logo ? `<img src="${escapeHtml(set.images.logo)}" alt="" style="height:28px; width:auto; max-width:90px; object-fit:contain;" onerror="this.style.display='none'">` : ''}
       <h2 style="font-size:16px; margin:0;">${escapeHtml(set.name)}</h2>
     </div>`;
-  document.getElementById('useSetForSearch').onclick = ()=> selectSetForSearch(set);
+  const useBtn = document.getElementById('useSetForSearch');
+  // "Deze set gebruiken" scoopt de Kaarten-zoeken-pagina naar pokemontcg.io's
+  // set.id -- zinloos (en geeft altijd 0 resultaten) voor een Japanse set,
+  // want pokemontcg.io kent geen Japanse sets. Daarom verborgen voor lang:'ja'.
+  useBtn.style.display = set.lang === 'ja' ? 'none' : '';
+  useBtn.onclick = ()=> selectSetForSearch(set);
   loading.style.display = '';
   grid.style.display = 'none';
   note.style.display = 'none';
   document.getElementById('setDetailOverlay').classList.add('show');
   try{
-    const cards = await fetchCardsForSet(set);
+    const cards = set.lang === 'ja' ? await fetchCardsForSetJa(set) : await fetchCardsForSet(set);
     // Race-guard: als de gebruiker intussen een ANDERE set heeft geopend
     // (dit overlay opnieuw aangeroepen terwijl deze fetch nog liep), mag
     // deze trage/oude fetch de inmiddels getoonde nieuwere set niet meer
@@ -7145,26 +7250,34 @@ document.getElementById('setDetailSortAsc').onclick = ()=>{
 document.getElementById('closeSetDetail').onclick = ()=> document.getElementById('setDetailOverlay').classList.remove('show');
 document.getElementById('closeSetDetailX').onclick = ()=> document.getElementById('setDetailOverlay').classList.remove('show');
 
-let setsLoadedOnce = false;
-async function renderSearchPage(){
+// Haalt de setlijst op die bij de huidige taalkeuze van de Sets-pagina hoort
+// (zie setsLang / #setsLangToggle hieronder) -- Engels via pokemontcg.io
+// (met TCGdex-terugval), Japans uitsluitend via TCGdex.
+function currentSetsList(){
+  return setsLang === 'ja' ? fetchAllSetsJa() : fetchAllSets();
+}
+let setsLoadedOnceEn = false;
+let setsLoadedOnceJa = false;
+async function renderSetsPage(){
   const loading = document.getElementById('setListLoading');
   const grid = document.getElementById('setGrid');
-  if(!setsLoadedOnce){
+  const loadedOnce = setsLang === 'ja' ? setsLoadedOnceJa : setsLoadedOnceEn;
+  if(!loadedOnce){
     loading.style.display = '';
     grid.style.display = 'none';
   }
   try{
-    const sets = await fetchAllSets();
+    const sets = await currentSetsList();
     renderSetGrid(sets);
     loading.style.display = 'none';
     grid.style.display = '';
-    setsLoadedOnce = true;
+    if(setsLang === 'ja') setsLoadedOnceJa = true; else setsLoadedOnceEn = true;
   }catch(e){
-    loading.innerHTML = `<p style="color:var(--red);font-size:13px;">Kon de setlijst niet laden: ${e.message}</p>`;
+    loading.innerHTML = `<p style="color:var(--red);font-size:13px;">Kon de setlijst niet laden: ${escapeHtml(e.message)}</p>`;
   }
 }
 document.getElementById('setFilterInput').addEventListener('input', async ()=>{
-  const sets = await fetchAllSets();
+  const sets = await currentSetsList();
   renderSetGrid(sets);
 });
 document.getElementById('clearSetChoice').onclick = ()=>{
@@ -7176,6 +7289,53 @@ document.getElementById('clearSetChoice').onclick = ()=>{
 document.getElementById('goSearch').onclick = runSearch;
 document.getElementById('globalSearch').addEventListener('keydown', e=>{
   if(e.key === 'Enter') runSearch();
+});
+
+// EN/JP-taalknoppen boven de Sets- en Kaarten-zoeken-pagina's -- elk
+// onafhankelijk onthouden, want je kan bijv. Japanse sets doorbladeren
+// terwijl je losse zoekopdrachten liever in het Engels blijft doen.
+let setsLang = localStorage.getItem('pkc_sets_lang') === 'ja' ? 'ja' : 'en';
+let searchLang = localStorage.getItem('pkc_search_lang') === 'ja' ? 'ja' : 'en';
+function updateLangToggleUI(toggleId, lang){
+  const el = document.getElementById(toggleId);
+  if(!el) return;
+  el.querySelectorAll('.langbtn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+}
+updateLangToggleUI('setsLangToggle', setsLang);
+updateLangToggleUI('searchLangToggle', searchLang);
+document.querySelectorAll('#setsLangToggle .langbtn').forEach(b=>{
+  b.onclick = ()=>{
+    if(b.dataset.lang === setsLang) return;
+    setsLang = b.dataset.lang;
+    localStorage.setItem('pkc_sets_lang', setsLang);
+    updateLangToggleUI('setsLangToggle', setsLang);
+    document.getElementById('setFilterInput').value = '';
+    renderSetsPage();
+  };
+});
+document.querySelectorAll('#searchLangToggle .langbtn').forEach(b=>{
+  b.onclick = ()=>{
+    if(b.dataset.lang === searchLang) return;
+    searchLang = b.dataset.lang;
+    localStorage.setItem('pkc_search_lang', searchLang);
+    updateLangToggleUI('searchLangToggle', searchLang);
+    const hint = document.getElementById('searchHint');
+    if(hint) hint.textContent = searchLang === 'ja'
+      ? 'Bijv. "リザードン" of "ピカチュウ" -- geen marktprijs beschikbaar voor Japanse kaarten.'
+      : 'Bijv. "Charizard", "Umbreon VMAX" of "Pikachu"';
+    // "Bereik: <set>" scoopt alleen de Engelse zoekopdracht (pokemontcg.io) --
+    // zinloos zolang Japans actief staat, dus tijdelijk verborgen i.p.v. een
+    // scope te tonen die toch niets doet.
+    const scope = document.getElementById('activeSetScope');
+    if(scope) scope.style.display = searchLang === 'ja' ? 'none' : '';
+    // Oude resultaten in de andere taal niet laten staan -- anders lijkt een
+    // Engelse kaart per ongeluk een treffer op een Japanse zoekopdracht (of omgekeerd).
+    document.getElementById('searchGrid').style.display = 'none';
+    document.getElementById('searchGrid').innerHTML = '';
+    const empty = document.getElementById('homeEmpty');
+    empty.style.display = '';
+    empty.innerHTML = 'Typ een naam hierboven om kaarten te zoeken.<br><span style="opacity:.6;font-size:12px;">Je ziet dan de foto en actuele prijs van elke kaart.</span>';
+  };
 });
 
 // Searches real Pokémon cards on the free pokemontcg.io database (no AI needed).
@@ -7205,6 +7365,29 @@ async function searchCardsViaAPI(q){
     console.warn('pokemontcg.io zoeken mislukt, val terug op TCGdex:', primaryErr.message||primaryErr);
     return await tcgdexSearchForHome(q, selectedSet ? selectedSet.id : null);
   }
+}
+
+// Japanse tegenhanger van searchCardsViaAPI() -- TCGdex is hier de ENIGE bron
+// (pokemontcg.io kent geen Japanse kaarten), dus geen primaire/terugval-opzet.
+// Zelfde beperking als overal elders in de app: TCGdex's kaartenlijst-endpoint
+// geeft geen los "set"-object terug, dus de setnaam wordt (net als in
+// tcgdexSearchForHome hierboven) afgeleid uit het kaart-ID zelf -- en er komt
+// nooit een marktprijs terug (raw_usd blijft null), wat openSearchDetail()
+// en de resultatenkaart hieronder al netjes tonen als "—" / "onbekend".
+async function searchCardsViaAPIJa(q){
+  const list = await tcgdexQueryJa('/cards', { name: 'like:' + q, 'pagination:itemsPerPage': '15' });
+  return (Array.isArray(list) ? list : []).map(card => {
+    const derivedSetId = (card.id && card.localId) ? card.id.slice(0, card.id.length - card.localId.length - 1) : '';
+    return {
+      name: card.name,
+      set: derivedSetId,
+      number: card.localId,
+      rarity: null,
+      image: card.image ? card.image + '/high.webp' : null,
+      raw_usd: null,
+      source: null
+    };
+  });
 }
 
 function openSearchDetail(idx){
@@ -8230,7 +8413,7 @@ function openShareSheet(kind){
 }
 document.getElementById('goToWishlist').onclick = ()=> switchView('wishlist');
 document.getElementById('wishlistSearchBtn').onclick = ()=>{
-  switchView('search');
+  switchView('cardsearch');
   const input = document.getElementById('globalSearch');
   if(input) setTimeout(()=> input.focus(), 50);
 };
