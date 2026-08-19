@@ -5483,9 +5483,15 @@ let allSets = null; // in-memory cache once loaded this session
 async function fetchAllSets(){
   if(allSets) return allSets;
   try{
-    const cached = localStorage.getItem('pkc_ptcgio_sets');
-    const cachedTs = localStorage.getItem('pkc_ptcgio_sets_ts');
-    if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 7*24*60*60*1000){
+    // v2 + 24u i.p.v. v1 + 7 dagen (aug. 2026): pokemontcg.io bleek voorlopige/
+    // aankondigings-sets (o.a. van deze "Mega Evolution"-reeks) later stilletjes
+    // te hernoemen of te verwijderen -- een 7 dagen oude cache liet dan sets zien
+    // die niet meer echt bestaan (geen logo, geen kaarten, soms zelfs geen
+    // reactie meer op een tik). De v2-sleutel forceert voor iedereen één verse
+    // ophaling, en 24u i.p.v. 7 dagen laat zoiets voortaan vanzelf sneller herstellen.
+    const cached = localStorage.getItem('pkc_ptcgio_sets_v2');
+    const cachedTs = localStorage.getItem('pkc_ptcgio_sets_v2_ts');
+    if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 24*60*60*1000){
       allSets = JSON.parse(cached);
       return allSets;
     }
@@ -5502,8 +5508,8 @@ async function fetchAllSets(){
     allSets = await tcgdexFetchSets(); // let this throw further up if TCGdex is also unreachable
   }
   try{
-    localStorage.setItem('pkc_ptcgio_sets', JSON.stringify(allSets));
-    localStorage.setItem('pkc_ptcgio_sets_ts', String(Date.now()));
+    localStorage.setItem('pkc_ptcgio_sets_v2', JSON.stringify(allSets));
+    localStorage.setItem('pkc_ptcgio_sets_v2_ts', String(Date.now()));
   }catch(e){}
   return allSets;
 }
