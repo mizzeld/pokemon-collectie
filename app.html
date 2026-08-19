@@ -1862,6 +1862,28 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
   @media (max-width: 860px){
     #jachtgidsMain .jg-hero{ grid-template-columns:1fr; }
   }
+
+  /* Vaste onderbalk-navigatie, alleen op telefoonbreedte (zelfde 480px-grens
+     als de rest van de app). Op grotere schermen blijft de bovenste
+     .jg-hero-links-rij het enige menu, en blijft deze balk verborgen. */
+  #jachtgidsMain .jg-mobile-tabbar{ display:none; }
+  @media (max-width:480px){
+    #jachtgidsMain .jg-hero-links{ display:none; }
+    #jachtgidsMain{ padding-bottom:90px; }
+    #jachtgidsMain .jg-mobile-tabbar{
+      display:flex; position:fixed; left:0; right:0; bottom:0; z-index:25;
+      background:var(--jg-panel); border-top:1px solid var(--jg-line);
+      padding:10px 6px calc(8px + env(safe-area-inset-bottom));
+      gap:4px; box-shadow:0 -6px 20px rgba(0,0,0,.35);
+    }
+    #jachtgidsMain .jg-mobile-tabbar a{
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+      text-decoration:none; color:var(--jg-ink); font-size:11.5px; font-weight:600;
+      padding:6px 2px 4px; border-radius:12px;
+    }
+    #jachtgidsMain .jg-mobile-tabbar a .ic{ font-size:23px; line-height:1; }
+    #jachtgidsMain .jg-mobile-tabbar a.primary{ color:var(--jg-gold); }
+  }
 </style>
 
 <div class="jg-wrap">
@@ -2105,6 +2127,19 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
   </div>
 
 </div>
+
+<!-- Alleen op telefoon (zie @media max-width:480px hierboven): de 3 kleine
+     tekstlinkjes bovenaan waren op een telefoonscherm te klein en onopvallend
+     om als "hoofdmenu" van de pagina te dienen. Deze vaste balk onderaan (naar
+     het idee van de HoloDex-app-screenshot) maakt dezelfde 3 bestemmingen
+     groter en duidelijker tapbaar. Op tablet/desktop blijft de originele
+     .jg-hero-links-rij gewoon zoals die was. -->
+<nav class="jg-mobile-tabbar">
+  <a href="#jgBudget" class="primary"><span class="ic">💰</span>Budget</a>
+  <a href="#jgChase"><span class="ic">🃏</span>Chase cards</a>
+  <a href="#jgSignals"><span class="ic">📈</span>Signalen</a>
+</nav>
+
 </main>
 
 <main id="packsMain" style="display:none;">
