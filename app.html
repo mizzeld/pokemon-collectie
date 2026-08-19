@@ -6460,8 +6460,8 @@ let setDetailSortDir = 'desc';
 // repeat every time you reopen the same set.
 async function fetchCardsForSet(set){
   try{
-    const cached = localStorage.getItem('pkc_setdetail_v6_' + set.id);
-    const cachedTs = localStorage.getItem('pkc_setdetail_v6_' + set.id + '_ts');
+    const cached = localStorage.getItem('pkc_setdetail_v7_' + set.id);
+    const cachedTs = localStorage.getItem('pkc_setdetail_v7_' + set.id + '_ts');
     if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 24*60*60*1000){
       const parsedCache = JSON.parse(cached);
       if(applySetPriceOverrides(set.id, parsedCache.cards)) parsedCache.hasPrices = true;
@@ -6505,7 +6505,25 @@ async function fetchCardsForSet(set){
     });
   }catch(primaryErr){
     console.warn('pokemontcg.io setkaarten mislukt, val terug op TCGdex:', primaryErr.message||primaryErr);
-    const tdCards = await tcgdexQuery('/cards', { id: set.id + '*', 'pagination:itemsPerPage': '250' });
+    // BUG (gevonden aug. 2026): pokemontcg.io en TCGdex gebruiken elk hun EIGEN
+    // set-ID-schema voor dezelfde set -- bijv. pokemontcg.io noemt "Chaos Rising"
+    // "me4", terwijl TCGdex 'm "me04" noemt (nul-padding verschilt). set.id
+    // (pokemontcg.io's ID) zomaar hergebruiken als TCGdex-ID levert dan een
+    // filter op dat NUL kaarten matcht -- geen foutmelding, gewoon een lege
+    // grid, wat leek op een "geen kaarten zichtbaar"-bug/geheugenprobleem maar
+    // gewoon een ID-mismatch was. Zoek daarom eerst de juiste TCGdex-set-ID op
+    // via de setnaam, en val alleen op set.id terug als die opzoeking zelf faalt.
+    let tdSetId = set.id;
+    try{
+      const tdSetMatches = await tcgdexQuery('/sets', { name: 'like:' + set.name });
+      const tdSetMatch = Array.isArray(tdSetMatches)
+        ? (tdSetMatches.find(s => s.name === set.name) || tdSetMatches[0])
+        : null;
+      if(tdSetMatch && tdSetMatch.id) tdSetId = tdSetMatch.id;
+    }catch(e){
+      console.warn('TCGdex set-ID opzoeken via naam mislukt, val terug op pokemontcg.io-ID:', e.message||e);
+    }
+    const tdCards = await tcgdexQuery('/cards', { id: tdSetId + '*', 'pagination:itemsPerPage': '250' });
     cards = (Array.isArray(tdCards) ? tdCards : []).map(card => ({
       name: card.name, number: card.localId,
       image: card.image ? card.image + '/high.webp' : null,
@@ -6517,10 +6535,16 @@ async function fetchCardsForSet(set){
   recordCatalogSnapshotsBatch(set.id, cards);
 
   const result = { cards, hasPrices };
-  try{
-    localStorage.setItem('pkc_setdetail_v6_' + set.id, JSON.stringify(result));
-    localStorage.setItem('pkc_setdetail_v6_' + set.id + '_ts', String(Date.now()));
-  }catch(e){}
+  // Nooit een LEGE kaartenlijst 24 uur lang cachen -- dat zou een tijdelijke
+  // hapering (pokemontcg.io 500 + TCGdex net geen match) laten "vastvriezen"
+  // tot een lege set die pas morgen vanzelf weer goed wordt. Bij 0 kaarten
+  // gewoon niet cachen, zodat de volgende keer opnieuw geprobeerd wordt.
+  if(cards.length > 0){
+    try{
+      localStorage.setItem('pkc_setdetail_v7_' + set.id, JSON.stringify(result));
+      localStorage.setItem('pkc_setdetail_v7_' + set.id + '_ts', String(Date.now()));
+    }catch(e){}
+  }
   return result;
 }
 
