@@ -3305,6 +3305,32 @@ function pptCreditsLabel(){
   return `${remaining}/100 credits over vandaag`;
 }
 
+// True zodra de laatst-bekende credit-teller op 0 (of lager) staat. Gebruikt om
+// vóóraf een duidelijke "limiet bereikt"-melding te tonen i.p.v. gewoon de call
+// te doen en pas via een 429-foutmelding te ontdekken dat het niet kan.
+function pptCreditsExhausted(){
+  const remaining = localStorage.getItem('pkc_ppt_credits_remaining');
+  if(remaining === null) return false;
+  return parseInt(remaining, 10) <= 0;
+}
+
+// Zet een gegooide fout van pptFetch() om in een duidelijke Nederlandse melding
+// -- met name het gratis dagelijkse limiet (429) is iets wat regelmatig kan
+// gebeuren zodra de automatische 2x-daagse verversing + losse checks samen de
+// 100 credits/dag opgebruikt hebben, en verdient een andere melding dan een
+// generieke "mislukt".
+function pptErrorMessage(e){
+  const msg = (e && e.message) || '';
+  if(/\(429\)/.test(msg) || pptCreditsExhausted()){
+    return 'Dagelijkse limiet van PokemonPriceTracker is bereikt (gratis tier: 100 credits/dag) -- morgen weer beschikbaar.';
+  }
+  if(/\(401\)|\(403\)/.test(msg)){
+    return 'PokemonPriceTracker wees de aanvraag af (mogelijk een verlopen gratis API-key).';
+  }
+  if(msg) return 'PokemonPriceTracker-fout: ' + msg;
+  return 'Kon geen verbinding maken met PokemonPriceTracker, probeer het later opnieuw.';
+}
+
 function priceStatusLabel(){
   return lastPriceRefreshLabel() + ' · ' + pptCreditsLabel();
 }
@@ -3333,6 +3359,11 @@ async function fetchPriceUpdates(cards){
       const { raw, psa10 } = pptExtractPrices(best);
       results.push({ id: c.id, raw_usd: raw, psa10_usd: psa10 });
     }catch(e){
+      // Bij de dagelijkse-limiet-fout (429) heeft doorgaan met de rest van dit
+      // batch geen zin -- elke volgende aanvraag faalt toch. Gooi 'm door zodat
+      // de aanroeper stopt, in plaats van deze kaarten stilzwijgend als "net
+      // gecheckt" te markeren terwijl er niks is opgehaald.
+      if(/\(429\)/.test((e && e.message) || '')) throw e;
       console.warn('prijs-lookup mislukt voor', c.name, e);
     }
   }
@@ -3350,10 +3381,14 @@ async function refreshCollectionPrices(){
   setPriceRefreshUI(true);
 
   const BATCH = 8;
-  const MAX_CARDS = 49; // matches PokemonPriceTracker's free 100 credits/day (2 credits/card)
+  // PokemonPriceTracker's gratis tier geeft 100 credits/dag (2 credits/kaart). De site
+  // ververst nu automatisch tot 2x per dag (zie maybeAutoRefreshPrices) -- 24 kaarten x
+  // 2 credits x 2 beurten = 96 credits/dag, met nog wat ruimte over voor losse "Check
+  // live prijs"-klikken en het meteen checken van net toegevoegde kaarten.
+  const MAX_CARDS = 24;
   // Always refresh the cards that have gone longest without a price check first, so a
   // large collection cycles through completely over several days/opens instead of the
-  // same first 49 cards getting refreshed every time.
+  // same first cards getting refreshed every time.
   const targets = [...collection]
     .sort((a,b) => (a.lastPriced||0) - (b.lastPriced||0))
     .slice(0, MAX_CARDS);
@@ -3385,6 +3420,9 @@ async function refreshCollectionPrices(){
         });
       }catch(e){
         console.warn('prijsupdate voor een batch mislukt', e);
+        // Dagelijkse limiet bereikt (of anderszins op) -- verdere batches zullen ook
+        // falen, dus stoppen i.p.v. steeds opnieuw een kansloze aanvraag te doen.
+        if(pptCreditsExhausted() || /\(429\)/.test((e && e.message) || '')) break;
       }
     }
     localStorage.setItem('pkc_last_price_refresh', String(Date.now()));
@@ -3418,6 +3456,7 @@ function maybeAutoRefreshPrices(){
 // plaats van te wachten tot de volgende automatische 12-uurs-ronde. Zo staat een
 // nieuwe kaart vrijwel direct met een actuele marktprijs in je collectie.
 async function refreshNewCardPrice(card){
+  if(pptCreditsExhausted()) return; // dagelijkse limiet al op -- geen kansloze aanvraag doen
   try{
     const updates = await fetchPriceUpdates([card]);
     const u = updates.find(x => x.id === card.id);
@@ -7393,6 +7432,7 @@ function openCatalogCard(c){
       ${c.psa10 ? `<div class="pricecard psa10 foil-sweep"><div class="l">PSA 10</div><div class="v mono">${fmt(c.psa10)}</div></div>` : ''}
     </div>
     <button class="addphotobtn" id="checkLiveCatalogPrice" style="display:block; width:calc(100% - 36px); margin:10px auto 0; text-align:center;">🔄 Check live prijs</button>
+    <div class="ladder-note" id="catalogLiveStatus" style="display:none; padding:6px 18px 0;"></div>
     ${catHist.length >= 1 ? trendSectionHTML('catTrend', catHist.length < 3 ? 'Prijsgeschiedenis wordt vanaf nu opgebouwd, elke keer dat je deze set bekijkt (max. 1 punt per dag) -- hoe langer je de app gebruikt, hoe langer deze lijn wordt.' : '') : ''}
     ${setDetailSet ? recentSalesHTML(setDetailSet.id, c.number) : ''}
     <div class="ladder-wrap" style="padding-top:0;">
@@ -7424,7 +7464,13 @@ function openCatalogCard(c){
 // en slaat een geschiedenispunt op zodat de trendgrafiek meteen meebeweegt.
 async function checkLiveCatalogPrice(c){
   const btn = document.getElementById('checkLiveCatalogPrice');
+  const statusEl = document.getElementById('catalogLiveStatus');
   if(!btn || btn.disabled) return;
+  if(statusEl){ statusEl.style.display = 'none'; statusEl.textContent = ''; }
+  if(pptCreditsExhausted()){
+    if(statusEl){ statusEl.style.display = ''; statusEl.textContent = pptErrorMessage(); }
+    return;
+  }
   btn.disabled = true;
   btn.textContent = 'Bezig met checken…';
   try{
@@ -7433,7 +7479,8 @@ async function checkLiveCatalogPrice(c){
     const best = pptPickBestMatch(matches, setName);
     if(!best){
       btn.disabled = false;
-      btn.textContent = 'Geen live prijs gevonden — opnieuw proberen';
+      btn.textContent = '🔄 Opnieuw proberen';
+      if(statusEl){ statusEl.style.display = ''; statusEl.textContent = 'Geen match gevonden bij PokemonPriceTracker voor deze kaart.'; }
       return;
     }
     const { raw, psa10 } = pptExtractPrices(best);
@@ -7441,7 +7488,8 @@ async function checkLiveCatalogPrice(c){
     const gotPsa10 = typeof psa10 === 'number' && psa10 > 0;
     if(!gotRaw && !gotPsa10){
       btn.disabled = false;
-      btn.textContent = 'Geen live prijs gevonden — opnieuw proberen';
+      btn.textContent = '🔄 Opnieuw proberen';
+      if(statusEl){ statusEl.style.display = ''; statusEl.textContent = 'Wel een match gevonden, maar zonder bruikbare prijsdata.'; }
       return;
     }
     if(gotRaw){ c.raw = raw; c.priceSource = 'live'; }
@@ -7457,7 +7505,8 @@ async function checkLiveCatalogPrice(c){
   }catch(e){
     console.warn('live catalogusprijs-check mislukt', e);
     btn.disabled = false;
-    btn.textContent = 'Live prijs ophalen mislukt — probeer opnieuw';
+    btn.textContent = '🔄 Opnieuw proberen';
+    if(statusEl){ statusEl.style.display = ''; statusEl.textContent = pptErrorMessage(e); }
   }
 }
 
@@ -8638,6 +8687,7 @@ function openDexCardInfo(idx){
       ${c.psa10 ? `<div class="pricecard psa10 foil-sweep"><div class="l">PSA 10</div><div class="v mono">${fmt(c.psa10)}</div></div>` : ''}
     </div>
     <button class="addphotobtn" id="checkLiveDexPrice" style="display:block; width:calc(100% - 36px); margin:10px auto 0; text-align:center;">🔄 Check live prijs</button>
+    <div class="ladder-note" id="dexLiveStatus" style="display:none; padding:6px 18px 0;"></div>
     ${catHist.length >= 1 ? trendSectionHTML('dexTrend', catHist.length < 3 ? 'Prijsgeschiedenis wordt vanaf nu opgebouwd, elke keer dat je deze kaart bekijkt (max. 1 punt per dag).' : '') : ''}
     ${c.setId ? recentSalesHTML(c.setId, c.number) : ''}
     <div class="ladder-wrap" style="padding-top:0;">
@@ -8667,7 +8717,13 @@ function openDexCardInfo(idx){
 // i.p.v. c.raw, en geen gedeelde setDetailSet -- setId/setName staan per kaart).
 async function checkLiveDexCardPrice(c, idx){
   const btn = document.getElementById('checkLiveDexPrice');
+  const statusEl = document.getElementById('dexLiveStatus');
   if(!btn || btn.disabled) return;
+  if(statusEl){ statusEl.style.display = 'none'; statusEl.textContent = ''; }
+  if(pptCreditsExhausted()){
+    if(statusEl){ statusEl.style.display = ''; statusEl.textContent = pptErrorMessage(); }
+    return;
+  }
   btn.disabled = true;
   btn.textContent = 'Bezig met checken…';
   try{
@@ -8676,7 +8732,8 @@ async function checkLiveDexCardPrice(c, idx){
     const best = pptPickBestMatch(matches, setName);
     if(!best){
       btn.disabled = false;
-      btn.textContent = 'Geen live prijs gevonden — opnieuw proberen';
+      btn.textContent = '🔄 Opnieuw proberen';
+      if(statusEl){ statusEl.style.display = ''; statusEl.textContent = 'Geen match gevonden bij PokemonPriceTracker voor deze kaart.'; }
       return;
     }
     const { raw, psa10 } = pptExtractPrices(best);
@@ -8684,7 +8741,8 @@ async function checkLiveDexCardPrice(c, idx){
     const gotPsa10 = typeof psa10 === 'number' && psa10 > 0;
     if(!gotRaw && !gotPsa10){
       btn.disabled = false;
-      btn.textContent = 'Geen live prijs gevonden — opnieuw proberen';
+      btn.textContent = '🔄 Opnieuw proberen';
+      if(statusEl){ statusEl.style.display = ''; statusEl.textContent = 'Wel een match gevonden, maar zonder bruikbare prijsdata.'; }
       return;
     }
     if(gotRaw){ c.price = c.price || {}; c.price.raw = raw; }
@@ -8697,7 +8755,8 @@ async function checkLiveDexCardPrice(c, idx){
   }catch(e){
     console.warn('live dex-kaartprijs-check mislukt', e);
     btn.disabled = false;
-    btn.textContent = 'Live prijs ophalen mislukt — probeer opnieuw';
+    btn.textContent = '🔄 Opnieuw proberen';
+    if(statusEl){ statusEl.style.display = ''; statusEl.textContent = pptErrorMessage(e); }
   }
 }
 
