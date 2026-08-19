@@ -4072,6 +4072,12 @@ function openDetail(id){
         <div class="pf-tooltip"></div>
       </div>
       <div class="ladder-note">${c.isGraded ? `Deze kaart is al gegradeerd (${escapeHtml(c.gradingCompany||'')} ${escapeHtml(c.grade||'')}). De grafiek toont ter vergelijking hoe de prijs bij andere grades ligt.` : `Raw en PSA 10 zijn onderzochte marktprijzen${c.manual?` (live opgezocht, ${escapeHtml(c.added)})`:` (research aug. 2026)`}. PSA 2–9 zijn een geschatte curve tussen die twee punten, geen individueel opgezochte waarden.`}</div>
+      ${(!c.isGraded && c.raw > 0 && c.psa10 > 0) ? `
+      <div class="ladder-note" style="margin-top:6px;">
+        <b>Is graden de moeite waard?</b> Een PSA 10 van deze kaart is hier ${(c.psa10/c.raw).toFixed(1)}× de raw-prijs waard
+        (${fmt(c.psa10 - c.raw)} verschil). Graderingskosten, verzending en het risico dat 'm geen 10 haalt zitten hier
+        niet bij -- die verschillen per bedrijf, tier en moment. Zie dit als een indicatie om zelf mee te rekenen, geen garantie of financieel advies.
+      </div>` : ''}
     </div>
     ${(c.priceHistory && c.priceHistory.length >= 1) ? trendSectionHTML('ownTrend') : ''}
     <div class="pricecards">
