@@ -1166,6 +1166,13 @@ input[type=file]{display:none;}
   display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 155px)) !important;
   gap:10px !important; max-width:calc(155px*6 + 10px*5); margin:0 auto;
 }
+/* Op telefoonbreedte (zelfde 480px-grens als de rest van de app) paste de
+   minmax(130px,155px)-tegelbreedte hierboven er maar 2 per rij, terwijl er
+   makkelijk 3 smallere tegels naast elkaar passen. Vaste 3-koloms-grid met
+   1fr i.p.v. auto-fill zodat de tegels precies de beschikbare breedte vullen. */
+@media (max-width:480px){
+  .dexgrid{ grid-template-columns:repeat(3, 1fr) !important; gap:8px !important; max-width:100%; }
+}
 .dexslot{
   position:relative; background:var(--dex-panel); border:2px solid #333; border-radius:4px;
   padding:8px 6px 10px; display:flex; flex-direction:column; align-items:center; text-align:center;
