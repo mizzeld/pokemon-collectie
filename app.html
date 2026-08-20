@@ -240,6 +240,45 @@ main{padding:14px 12px 8px;}
   white-space:nowrap; padding:9px 4px; border-radius:8px; cursor:pointer;
 }
 .tab.active{background:var(--invert-bg); color:var(--invert-text); border-color:var(--invert-bg); font-weight:600;}
+
+/* ---------- MOBIELE ONDERBALK (vervangt .tabs hierboven op telefoonbreedte) ---------- */
+.mobilebottomnav{ display:none; }
+.mbn-more-list{ display:flex; flex-direction:column; gap:8px; margin-top:2px; }
+.mbn-more-list .tab{
+  display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+  background:transparent; border:1px solid var(--line); color:var(--text);
+  font-family:'Oswald'; font-size:14px; font-weight:600; text-transform:none;
+  letter-spacing:normal; padding:14px 16px; border-radius:12px; cursor:pointer;
+}
+.mbn-more-list .tab .mbn-ic{ font-size:20px; }
+.mbn-more-list .tab.active{ background:transparent; color:var(--text); border-color:var(--invert-bg); }
+@media (max-width:480px){
+  .tabs{ display:none; }
+  /* Ruimte onderaan elke pagina zodat inhoud niet achter de vaste onderbalk
+     (en de FAB's die er nu boven zitten, zie hieronder) verdwijnt. */
+  #appFrame{ padding-bottom:150px; }
+  .mobilebottomnav{
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:28;
+    background:var(--panel); border-top:1px solid var(--line);
+    padding:8px 4px calc(6px + env(safe-area-inset-bottom));
+    gap:2px; box-shadow:0 -6px 20px rgba(0,0,0,.35);
+  }
+  .mobilebottomnav .tab{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    background:transparent; border:none; color:var(--muted);
+    font-family:'Oswald'; font-size:10px; font-weight:600; text-transform:none;
+    letter-spacing:normal; padding:6px 2px 4px; border-radius:12px; white-space:nowrap; cursor:pointer;
+  }
+  .mobilebottomnav .tab.active{ background:transparent; color:var(--text); border-color:transparent; }
+  .mobilebottomnav .mbn-ic{ font-size:21px; line-height:1; }
+  /* De losse ronde actieknoppen (kaart toevoegen/graderen) zaten al vast rechtsonder
+     -- een stukje omhoog zodat ze niet meer achter/over de nieuwe onderbalk vallen.
+     !important is hier nodig: de basis .fab/.fab-grade-regels staan verderop in dit
+     stylesheet (buiten een media query) en zouden anders, ondanks deze media query,
+     alsnog als laatste in de cascade winnen en bottom:20px terugzetten. */
+  .fab{ bottom:calc(78px + env(safe-area-inset-bottom)) !important; }
+  .fab-grade{ bottom:calc(136px + env(safe-area-inset-bottom)) !important; }
+}
 .gobtn{
   flex:0 0 auto; background:var(--red); color:#fff; border:none; border-radius:8px;
   padding:0 16px; font-family:'Oswald'; font-weight:600; font-size:13px; letter-spacing:.03em; cursor:pointer;
@@ -1344,7 +1383,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 
   <div class="tabs">
     <button class="tab active" data-view="home">Home</button>
-    <button class="tab" data-view="cardsearch">Kaarten</button>
+    <button class="tab" data-view="cardsearch">Zoeken</button>
     <button class="tab" data-view="sets">Sets</button>
     <button class="tab" data-view="collection">Collectie</button>
     <button class="tab" data-view="jachtgids">Jachtgids</button>
@@ -1430,6 +1469,35 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <div class="hint">Welke Pokémon heb je al verzameld op kaart? Namen worden automatisch gekoppeld — sommige ongebruikelijke promo- of tag-team-namen worden mogelijk niet herkend.</div>
   </div>
 </header>
+
+<!-- Vaste onderbalk-navigatie, alleen op telefoonbreedte (zie CSS
+     @media max-width:480px hieronder) -- vervangt daar de horizontaal
+     scrollende tabsrij bovenin met 5 grotere, duimvriendelijke knoppen plus
+     een "Meer"-knop voor de resterende onderdelen. Hergebruikt bewust
+     class="tab" zodat de bestaande generieke wiring (switchView + active-
+     state, verderop in het script) deze knoppen automatisch meeneemt. -->
+<nav class="mobilebottomnav" id="mobileBottomNav">
+  <button class="tab" data-view="home"><span class="mbn-ic">🏠</span><span class="mbn-lbl">Home</span></button>
+  <button class="tab" data-view="collection"><span class="mbn-ic">📁</span><span class="mbn-lbl">Collectie</span></button>
+  <button class="tab" data-view="cardsearch"><span class="mbn-ic">🔍</span><span class="mbn-lbl">Zoeken</span></button>
+  <button class="tab" data-view="sets"><span class="mbn-ic">📦</span><span class="mbn-lbl">Sets</span></button>
+  <button class="tab" data-view="shop"><span class="mbn-ic">🛒</span><span class="mbn-lbl">Shop</span></button>
+  <button type="button" class="tab" id="mobileMoreBtn"><span class="mbn-ic">⋯</span><span class="mbn-lbl">Meer</span></button>
+</nav>
+
+<div class="overlay" id="mobileMoreOverlay">
+  <div class="sheet addsheet">
+    <div class="grabber"></div>
+    <div class="body">
+      <h2 style="font-size:16px;margin:4px 0 14px;">Meer</h2>
+      <div class="mbn-more-list">
+        <button type="button" class="tab" data-view="jachtgids"><span class="mbn-ic">🎯</span><span class="mbn-lbl">Jachtgids</span></button>
+        <button type="button" class="tab" data-view="packs"><span class="mbn-ic">🎁</span><span class="mbn-lbl">Packs</span></button>
+        <button type="button" class="tab" data-view="pokedex"><span class="mbn-ic">📖</span><span class="mbn-lbl">Pokédex</span></button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <main id="homeMain">
   <div id="homeDashboard"></div>
@@ -5200,8 +5268,14 @@ function switchView(view){
   document.getElementById('packsMain').style.display = packs ? '' : 'none';
   document.getElementById('shopMain').style.display = shop ? '' : 'none';
   document.getElementById('pokedexMain').style.display = dex ? '' : 'none';
-  document.getElementById('pageTitle').textContent = home ? 'Home' : (cardsearch ? 'Kaarten' : (sets ? 'Sets' : (wish ? 'Verlanglijst' : (trade ? 'Ruilvoorraad' : (hunt ? 'Jachtgids' : (packs ? 'Pack Opening' : (shop ? 'Shop' : (dex ? 'Pokédex' : 'Mijn Pokémon Collectie'))))))));
+  document.getElementById('pageTitle').textContent = home ? 'Home' : (cardsearch ? 'Zoeken' : (sets ? 'Sets' : (wish ? 'Verlanglijst' : (trade ? 'Ruilvoorraad' : (hunt ? 'Jachtgids' : (packs ? 'Pack Opening' : (shop ? 'Shop' : (dex ? 'Pokédex' : 'Mijn Pokémon Collectie'))))))));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view === view));
+  // De "Meer"-knop in de mobiele onderbalk heeft zelf geen vaste data-view (die
+  // opent een menu), maar moet wel oplichten zodra je op een van de 3 pagina's
+  // zit die daarachter verstopt zitten -- anders lijkt het net of geen enkele
+  // onderbalk-knop actief is terwijl je gewoon ergens in de app bent.
+  const moreBtn = document.getElementById('mobileMoreBtn');
+  if(moreBtn) moreBtn.classList.toggle('active', hunt || packs || dex);
   // The FABs (photo tools) only make sense for your own collection.
   document.getElementById('openAdd').style.display = coll ? '' : 'none';
   document.getElementById('openGrade').style.display = coll ? '' : 'none';
@@ -8977,6 +9051,22 @@ document.getElementById('openSettings').onclick = ()=>{
   document.getElementById('settingsOverlay').classList.add('show');
 };
 document.getElementById('closeSettings').onclick = ()=> document.getElementById('settingsOverlay').classList.remove('show');
+
+/* ============================= MOBIELE ONDERBALK: "Meer"-menu =============================
+   De 3 knoppen in dit menu hebben (net als de onderbalk zelf) class="tab" +
+   data-view, dus de generieke wiring hierboven (querySelectorAll('.tab')) zet
+   ze al aan het werk voor switchView(). Hier overschrijven we dat bewust nog
+   een keer, puur om na het wisselen ook meteen het menu weer dicht te doen --
+   dat hoort niet bij de generieke .tab-wiring, die weet niets van dit menu. */
+document.querySelectorAll('#mobileMoreOverlay .tab').forEach(t=>{
+  t.onclick = ()=>{
+    switchView(t.dataset.view);
+    document.getElementById('mobileMoreOverlay').classList.remove('show');
+  };
+});
+document.getElementById('mobileMoreBtn').onclick = ()=>{
+  document.getElementById('mobileMoreOverlay').classList.add('show');
+};
 
 /* ============================= HANDMATIG VERVERSEN (voor "Zet op beginscherm"-apps die oude versies vasthouden) =============================
    Verandert de URL (cache-busting query string) zodat de browser gedwongen wordt de laatste versie
