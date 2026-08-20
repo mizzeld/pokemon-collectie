@@ -3255,6 +3255,102 @@ const fmt = n => {
 };
 function tierOf(c){ return c.raw>=20 ? 'chase' : (c.raw>=5 ? 'rare' : 'common'); }
 
+/* ============================= GRADEN-ADVIES ("is graden de moeite waard?") =============================
+   Schat in of het financieel de moeite waard is om een kaart te laten graden, op basis van:
+   raw-prijs vs PSA10-prijs, hoeveel je "verliest" als het een PSA 9 wordt i.p.v. PSA 10, en een
+   schatting van de graderingskosten (incl. verzending). Bedoeld als hulpmiddel/indicatie, geen
+   garantie welke grade een kaart krijgt en geen financieel advies.
+
+   Kostenschatting gebaseerd op onderzoek (aug. 2026) naar hoe Nederlandse spelers doorgaans
+   laten graden en wat andere grading-adviestools (o.a. PokemonPriceTracker's PSA-calculator,
+   CardGrade.io's ROI-tool) als kostenposten meenemen:
+   - Nederlandse inzendservices: ca. EUR 12-50 per kaart voor de laagste tariefklasses,
+     afhankelijk van kaartwaarde en gewenste snelheid (verzending/verzekering meestal inbegrepen).
+   - Losse Nederlandse graders zoals PokeGrade: ca. EUR 15 per kaart voor kaarten tot EUR 500 waarde.
+   - Rechtstreeks naar PSA (VS) sturen is voor een los kaartje zelden de goedkoopste route door
+     internationale verzending, verzekering en invoer-btw.
+   De onderstaande staffel is een grove schatting op basis daarvan (in EUR, omgerekend naar USD
+   zodat fmt() 'm net als alle andere bedragen in de juiste valuta laat zien) en is expliciet
+   aanpasbaar in de UI omdat de echte kosten per route/moment verschillen. */
+function estimateGradingCostUSD(rawUsd){
+  const rawEur = (rawUsd||0) * USD_TO_EUR;
+  let eur;
+  if(rawEur >= 300) eur = 50;
+  else if(rawEur >= 100) eur = 30;
+  else if(rawEur >= 30) eur = 20;
+  else eur = 15;
+  return eur / USD_TO_EUR;
+}
+
+function gradeAdviceCalc(c, costUsdOverride){
+  const raw = c.raw, psa10 = c.psa10;
+  const pts = gradeCurve(raw, psa10, c.psa9);
+  const psa9IsEstimate = c.psa9 == null;
+  const psa9 = psa9IsEstimate ? pts[9] : c.psa9;
+  const cost = (costUsdOverride != null && !isNaN(costUsdOverride)) ? costUsdOverride : estimateGradingCostUSD(raw);
+  const diffAbs = psa10 - raw;
+  const diffPct = raw > 0 ? (psa10/raw - 1)*100 : null;
+  const psa9LossAbs = psa10 - psa9;
+  const psa9LossPct = psa10 > 0 ? (psa9LossAbs/psa10*100) : null;
+  const net10 = psa10 - raw - cost;
+  const net9 = psa9 - raw - cost;
+  let verdict, verdictColor;
+  if(net10 <= 0){
+    verdict = 'Waarschijnlijk niet de moeite waard — zelfs bij een PSA 10 maak je verlies op de graderingskosten.';
+    verdictColor = 'var(--red)';
+  } else if(net9 < 0){
+    verdict = 'Twijfelachtig — bij PSA 10 win je, maar bij PSA 9 (heel gebruikelijk) maak je verlies. Alleen de moeite waard als je vertrouwen hebt in een 10.';
+    verdictColor = '#e0a95c';
+  } else {
+    verdict = 'Waarschijnlijk de moeite waard — zelfs bij "maar" een PSA 9 blijf je boven de kosten.';
+    verdictColor = 'var(--green)';
+  }
+  return { raw, psa10, psa9, psa9IsEstimate, cost, diffAbs, diffPct, psa9LossAbs, psa9LossPct, net10, net9, verdict, verdictColor };
+}
+
+function buildGradeAdviceHTML(c, costUsdOverride){
+  const a = gradeAdviceCalc(c, costUsdOverride);
+  const costDisplay = currency === 'EUR' ? Math.round(a.cost * USD_TO_EUR) : Math.round(a.cost);
+  const symbol = currency === 'EUR' ? '€' : '$';
+  return `
+    <div class="ladder-note" style="margin-top:8px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px;">
+      <div style="font-weight:600; color:${a.verdictColor}; margin-bottom:8px; line-height:1.4;">${a.verdict}</div>
+      <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+        <div>Raw → PSA 10: <b>${fmt(a.raw)} → ${fmt(a.psa10)}</b>${a.diffPct!=null ? ` (+${a.diffPct.toFixed(0)}%, ${fmt(a.diffAbs)} verschil)` : ''}</div>
+        <div>PSA 9${a.psa9IsEstimate ? ' (geschat)' : ''}: <b>${fmt(a.psa9)}</b> — dat is ${fmt(a.psa9LossAbs)}${a.psa9LossPct!=null ? ` (${a.psa9LossPct.toFixed(0)}%)` : ''} minder dan een PSA 10</div>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span>Geschatte kosten om te laten graden (incl. verzending):</span>
+          <span style="display:inline-flex; align-items:center; gap:2px;">${symbol}<input type="number" id="gradeCostInput" value="${costDisplay}" step="1" min="0" style="width:56px; background:var(--bg2); border:1px solid var(--line); border-radius:6px; color:var(--text); padding:2px 6px; font-family:inherit; font-size:12px;"></span>
+        </div>
+        <div>Netto bij PSA 10: <b style="color:${a.net10>=0?'var(--green)':'var(--red)'}">${a.net10>=0?'+':''}${fmt(a.net10)}</b> &middot; Netto bij PSA 9: <b style="color:${a.net9>=0?'var(--green)':'var(--red)'}">${a.net9>=0?'+':''}${fmt(a.net9)}</b></div>
+      </div>
+      <div style="font-size:10.5px; color:var(--muted); margin-top:8px; line-height:1.5;">
+        Kostenschatting o.b.v. onderzoek naar Nederlandse inzendservices (ca. €12–50 per kaart, afhankelijk van kaartwaarde/snelheid) en losse graders zoals PokeGrade (~€15 t/m €500 kaartwaarde) — pas het bedrag hierboven aan als jouw route anders uitpakt. PSA 9-prijs ${a.psa9IsEstimate ? 'is een schatting op basis van de curve tussen raw en PSA 10, geen individueel opgezochte marktprijs' : 'is een individueel opgezochte marktprijs'}. Geen garantie welke grade je krijgt en geen financieel advies.
+      </div>
+    </div>`;
+}
+
+function wireGradeAdviceButton(c, btnId, panelId){
+  const btn = document.getElementById(btnId);
+  const panel = document.getElementById(panelId);
+  if(!btn || !panel) return;
+  function renderPanel(costUsdOverride){
+    panel.innerHTML = buildGradeAdviceHTML(c, costUsdOverride);
+    panel.style.display = 'block';
+    const costInput = document.getElementById('gradeCostInput');
+    if(costInput) costInput.onchange = ()=>{
+      const v = parseFloat(costInput.value);
+      if(isNaN(v) || v < 0) return;
+      renderPanel(currency === 'EUR' ? v / USD_TO_EUR : v);
+    };
+  }
+  btn.onclick = ()=>{
+    const isOpen = panel.style.display !== 'none' && panel.innerHTML !== '';
+    if(isOpen){ panel.style.display = 'none'; panel.innerHTML = ''; return; }
+    renderPanel();
+  };
+}
+
 function gradeCurve(raw, psa10, psa9){
   // 11 points: 0=Raw, 1..10 = PSA grades. Raw & PSA10 (and PSA9 if known) are real; rest interpolated.
   const pts=[];
@@ -3466,8 +3562,8 @@ async function fetchPriceUpdates(cards){
       const matches = await pptSearchCards(c.name, { limit: 5, includeEbay: true });
       const best = pptPickBestMatch(matches, c.set);
       if(!best) continue;
-      const { raw, psa10 } = pptExtractPrices(best);
-      results.push({ id: c.id, raw_usd: raw, psa10_usd: psa10 });
+      const { raw, psa10, psa9 } = pptExtractPrices(best);
+      results.push({ id: c.id, raw_usd: raw, psa10_usd: psa10, psa9_usd: psa9 });
     }catch(e){
       // Bij de dagelijkse-limiet-fout (429) heeft doorgaan met de rest van dit
       // batch geen zin -- elke volgende aanvraag faalt toch. Gooi 'm door zodat
@@ -3527,6 +3623,7 @@ async function refreshCollectionPrices(){
             if(c.priceHistory.length > 400) c.priceHistory = c.priceHistory.slice(c.priceHistory.length - 400);
           }
           if(typeof u.psa10_usd === 'number' && u.psa10_usd > 0) c.psa10 = u.psa10_usd;
+          if(typeof u.psa9_usd === 'number' && u.psa9_usd > 0) c.psa9 = u.psa9_usd;
         });
       }catch(e){
         console.warn('prijsupdate voor een batch mislukt', e);
@@ -3582,6 +3679,7 @@ async function refreshNewCardPrice(card){
         else card.priceHistory.push({date: today, raw: u.raw_usd, psa10: psa10Val});
       }
       if(typeof u.psa10_usd === 'number' && u.psa10_usd > 0) card.psa10 = u.psa10_usd;
+      if(typeof u.psa9_usd === 'number' && u.psa9_usd > 0) card.psa9 = u.psa9_usd;
     }
     await saveCollection();
     if(currentView === 'collection') render();
@@ -4258,11 +4356,8 @@ function openDetail(id){
       </div>
       <div class="ladder-note">${c.isGraded ? `Deze kaart is al gegradeerd (${escapeHtml(c.gradingCompany||'')} ${escapeHtml(c.grade||'')}). De grafiek toont ter vergelijking hoe de prijs bij andere grades ligt.` : `Raw en PSA 10 zijn onderzochte marktprijzen${c.manual?` (live opgezocht, ${escapeHtml(c.added)})`:` (research aug. 2026)`}. PSA 2–9 zijn een geschatte curve tussen die twee punten, geen individueel opgezochte waarden.`}</div>
       ${(!c.isGraded && c.raw > 0 && c.psa10 > 0) ? `
-      <div class="ladder-note" style="margin-top:6px;">
-        <b>Is graden de moeite waard?</b> Een PSA 10 van deze kaart is hier ${(c.psa10/c.raw).toFixed(1)}× de raw-prijs waard
-        (${fmt(c.psa10 - c.raw)} verschil). Graderingskosten, verzending en het risico dat 'm geen 10 haalt zitten hier
-        niet bij -- die verschillen per bedrijf, tier en moment. Zie dit als een indicatie om zelf mee te rekenen, geen garantie of financieel advies.
-      </div>` : ''}
+      <button class="addphotobtn" id="gradeAdviceBtn" style="margin-top:8px;">📊 Is graden de moeite waard?</button>
+      <div id="gradeAdvicePanel" style="display:none;"></div>` : ''}
     </div>
     ${(c.priceHistory && c.priceHistory.length >= 1) ? trendSectionHTML('ownTrend') : ''}
     <div class="pricecards">
@@ -4286,6 +4381,7 @@ function openDetail(id){
   initCard3D(document.querySelector('#detailSheet .card3d-stage'));
   document.getElementById('closeDetail').onclick = closeDetail;
   document.getElementById('addPhotoBtn').onclick = ()=> triggerPhotoUpdate(id);
+  wireGradeAdviceButton(c, 'gradeAdviceBtn', 'gradeAdvicePanel');
   const ladderSvgEl1 = document.querySelector('#detailSheet .ladder-svg');
   const ladderWrapEl1 = document.querySelector('#detailSheet .pf-chartwrap');
   if(ladderSvgEl1 && ladderWrapEl1) attachLadderHover(ladderSvgEl1, ladderWrapEl1, pts);
