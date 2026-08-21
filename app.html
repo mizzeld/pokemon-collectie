@@ -2321,7 +2321,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
           <div><label>Raw ($)</label><input id="fRaw" type="number" step="0.01"></div>
           <div><label>PSA 10 ($)</label><input id="fPsa10" type="number" step="0.01"></div>
         </div>
-        <div class="jp-note" id="jpNote" style="display:none;">Voor Japanse kaarten kan de app geen prijs opzoeken (geen betrouwbare gratis Japanse marktprijzen beschikbaar) — vul die zelf in.</div>
+        <div class="jp-note" id="jpNote" style="display:none;">Voor Japanse kaarten zoekt de app de prijs automatisch op via JustTCG als je daar in Instellingen een (gratis) sleutel voor hebt ingevuld — anders vul je 'm zelf in.</div>
         <div class="formrow two">
           <div><label>Betaald ($, optioneel)</label><input id="fPaid" type="number" step="0.01"></div>
           <div><label>Aantal</label><input id="fQty" type="number" step="1" min="1" value="1"></div>
@@ -2457,6 +2457,18 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         </div>
         <button class="backupbtn" id="claudeKeySaveBtn" style="width:100%; margin-top:4px;">Sleutel opslaan</button>
         <div class="hint" id="claudeKeyStatus" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="extrabox">
+        <div class="extrabox-title">Japanse kaartprijzen (optioneel)</div>
+        <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 10px;">
+          Japanse kaarten hebben nu geen automatische marktprijs (PokemonPriceTracker en TCGdex hebben daar geen data voor). JustTCG heeft wel gratis Japanse Pokémon-prijzen, maar met een klein dagelijks limiet (100 opzoekingen/dag) — daarom vraagt de app hier je eigen sleutel, i.p.v. een ingebouwde zoals bij de Engelse kaarten.
+          Gratis aan te maken via <span style="color:var(--text);">justtcg.com</span> (geen betaalgegevens nodig).
+          <strong>Deze sleutel wordt alléén lokaal op dit apparaat bewaard</strong> — niet in de site-code op GitHub.
+        </p>
+        <div class="formrow"><label>JustTCG API-sleutel</label><input id="justtcgApiKey" type="password" placeholder="tcg_..." autocomplete="off"></div>
+        <button class="backupbtn" id="justtcgKeySaveBtn" style="width:100%; margin-top:4px;">Sleutel opslaan</button>
+        <div class="hint" id="justtcgKeyStatus" style="margin-top:8px;"></div>
       </div>
 
       <div class="extrabox">
@@ -2851,6 +2863,84 @@ function pptExtractPrices(card){
     if(byGrade.psa9) psa9 = (byGrade.psa9.smartMarketPrice && byGrade.psa9.smartMarketPrice.price) ?? byGrade.psa9.medianPrice ?? byGrade.psa9.averagePrice ?? null;
   }
   return { raw, psa9, psa10 };
+}
+
+// JustTCG (justtcg.com): gratis API-tier die (in tegenstelling tot PokemonPriceTracker
+// en TCGdex) ook Japanse Pokémon OCG-prijzen dekt. Alleen gebruikt voor Japanse
+// kaarten -- voor Engelse kaarten blijft PPT (hierboven) de bron.
+// LET OP: dit gebruikt Joel's EIGEN sleutel (Instellingen), alleen lokaal opgeslagen
+// (pkc_justtcg_key) -- NIET hardcoded zoals PPT_API_KEY hierboven. Reden: JustTCG's
+// gratis limiet (100 opzoekingen/dag) is te klein om net als PPT publiek in de
+// broncode te zetten -- bij een publieke site zou dat binnen een paar bezoekers al
+// op zijn. Zonder sleutel doet justtcgFetch() gewoon niets (return null), zodat de
+// rest van de app daarna netjes terugvalt op de bestaande handmatige invoer.
+// CORS-ondersteuning is niet door JustTCG zelf bevestigd (niet gedocumenteerd) --
+// als de fetch faalt (network error / CORS-block), vangt elke aanroeper dat af en
+// valt gewoon terug op handmatig, precies zoals bij de PPT-bug hierboven.
+function justtcgApiKey(){
+  return (localStorage.getItem('pkc_justtcg_key') || '').trim();
+}
+const JUSTTCG_BASE = 'https://api.justtcg.com/v2';
+async function justtcgFetch(path, params){
+  const key = justtcgApiKey();
+  if(!key) return null;
+  const url = new URL(JUSTTCG_BASE + path);
+  Object.entries(params||{}).forEach(([k,v])=>{ if(v!==undefined && v!==null && v!=='') url.searchParams.set(k, v); });
+  const res = await fetch(url, { headers: { 'x-api-key': key } });
+  if(!res.ok){
+    let detail = '';
+    try{ const j = await res.json(); detail = j.error || j.message || ''; }catch(e){}
+    throw new Error('JustTCG fout (' + res.status + ')' + (detail ? ': ' + detail : ''));
+  }
+  return res.json();
+}
+
+// Ruwe JPY->USD terugval-koers, alleen gebruikt als JustTCG voor een kaart uitsluitend
+// een yen-prijs teruggeeft en geen USD/EUR-markt -- net zo'n bewuste, aanpasbare
+// schatting als USD_TO_EUR verderop in dit bestand. Prijzen blijven hierdoor in
+// dezelfde eenheid (USD) als de rest van de app verwacht, zodat fmt() ze correct
+// naar EUR kan omrekenen indien nodig.
+const JPY_TO_USD = 1/155;
+
+// Zoekt een Japanse kaart op JustTCG en geeft {raw, psa10} terug in USD, of null als
+// er niets bruikbaars gevonden is. JustTCG's documentatie noemt geen exacte "game"-
+// waarde voor Japanse Pokémon OCG-kaarten, dus dit probeert twee redelijke varianten
+// na elkaar; welke werkt, wordt pas duidelijk zodra er echt een sleutel getest wordt.
+async function justtcgSearchJapaneseCard(name, setNameHint){
+  const attempts = [
+    { game: 'pokemon-japan', q: name },
+    { game: 'pokemon', regions: 'jp', q: name }
+  ];
+  for(const params of attempts){
+    try{
+      const json = await justtcgFetch('/cards', params);
+      if(!json) return null; // geen sleutel ingesteld
+      const list = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+      if(!list.length) continue;
+      let best = list[0];
+      if(setNameHint){
+        const needle = String(setNameHint).toLowerCase();
+        const hit = list.find(c => c.set && needle.includes(String(c.set).toLowerCase()));
+        if(hit) best = hit;
+      }
+      const variants = Array.isArray(best.variants) ? best.variants : [];
+      const rawVariant = variants.find(v => v.type === 'raw');
+      const psa10Variant = variants.find(v => v.type === 'graded' && v.grading && v.grading.company === 'PSA' && Number(v.grading.grade) === 10);
+      const pickPriceUsd = (variant) => {
+        if(!variant || !Array.isArray(variant.markets) || !variant.markets.length) return null;
+        const usd = variant.markets.find(m => m.currency === 'USD');
+        if(usd && typeof usd.price === 'number') return usd.price;
+        const jpy = variant.markets.find(m => m.currency === 'JPY');
+        if(jpy && typeof jpy.price === 'number') return jpy.price * JPY_TO_USD;
+        const any = variant.markets[0];
+        return any && typeof any.price === 'number' ? any.price : null;
+      };
+      const raw = pickPriceUsd(rawVariant);
+      const psa10 = pickPriceUsd(psa10Variant);
+      if(raw != null || psa10 != null) return { raw, psa10, setName: best.set || null };
+    }catch(e){ console.warn('JustTCG-opzoeking mislukt (' + params.game + ')', e); }
+  }
+  return null;
 }
 
 // pokemontcg.io: free card database with real images, used only to replace the old
@@ -4741,20 +4831,32 @@ async function fPriceAutofill(){
   }catch(e){ console.warn('auto-prijslookup mislukt', e); }
 }
 // Zoekt naam/set/afbeelding op via TCGdex's Japanse catalogus (api.tcgdex.net/v2/ja).
-// Geen prijzen -- die vult de gebruiker zelf in via de melding onder de prijsvelden.
+// Prijs: alleen als de gebruiker een eigen JustTCG-sleutel heeft ingesteld
+// (Instellingen) -- zonder sleutel blijft dit veld bewust leeg voor handmatige invoer,
+// zoals altijd al het geval was.
 async function fJapaneseLookup(name){
+  let setNameForPriceLookup = null;
   try{
     const list = await tcgdexQueryJa('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '5' });
-    if(!Array.isArray(list) || !list.length) return;
-    const best = list[0];
-    const setField = document.getElementById('fSet');
-    if(best.set && best.set.name && !setField.value){
-      setField.value = best.set.name + (best.localId ? ' · ' + best.localId : '');
-    }
-    if(best.image && !pendingPhoto){
-      // alleen als er nog geen eigen foto gemaakt is (zeldzaam via deze route, maar veilig)
+    if(Array.isArray(list) && list.length){
+      const best = list[0];
+      const setField = document.getElementById('fSet');
+      if(best.set && best.set.name && !setField.value){
+        setField.value = best.set.name + (best.localId ? ' · ' + best.localId : '');
+      }
+      if(best.set && best.set.name) setNameForPriceLookup = best.set.name;
     }
   }catch(e){ console.warn('Japanse kaart-opzoeking mislukt', e); }
+
+  if(!justtcgApiKey()) return;
+  try{
+    const priced = await justtcgSearchJapaneseCard(name, setNameForPriceLookup);
+    if(!priced) return;
+    const rawField = document.getElementById('fRaw');
+    const psaField = document.getElementById('fPsa10');
+    if(priced.raw != null && !rawField.value) rawField.value = priced.raw.toFixed(2);
+    if(priced.psa10 != null && !psaField.value) psaField.value = priced.psa10.toFixed(2);
+  }catch(e){ console.warn('JustTCG prijs-opzoeking mislukt', e); }
 }
 document.getElementById('fIsGraded').onchange = (e)=>{
   document.getElementById('gradedFields').style.display = e.target.checked ? '' : 'none';
@@ -7745,21 +7847,45 @@ function openPriceChartingLookup(linkNameSet, statusElId, currentRaw, currentPsa
 }
 
 // Knop "Check live prijs" in openCatalogCard -- zie openPriceChartingLookup hierboven.
-function checkLiveCatalogPrice(c){
+// Voor Japanse sets (setDetailSet.lang === 'ja') wordt eerst JustTCG geprobeerd
+// (automatisch, geen tabblad nodig) als de gebruiker daar een eigen sleutel voor
+// heeft ingesteld -- anders (of als dat niets oplevert) valt dit terug op de
+// bestaande handmatige PriceCharting-flow, die voor Japanse kaarten ook werkt maar
+// zelf overtypen vereist.
+function applyCatalogPriceResult(c, raw, psa10, source){
+  if(raw != null){ c.raw = raw; c.priceSource = source; }
+  if(psa10 != null) c.psa10 = psa10;
+  if(setDetailSet && raw != null){
+    recordCatalogSnapshot(setDetailSet.id, c.number, raw, psa10);
+    if(Array.isArray(setDetailCards)){
+      const idx = setDetailCards.findIndex(x => x.number === c.number && x.name === c.name);
+      if(idx >= 0){ setDetailCards[idx].raw = c.raw; setDetailCards[idx].psa10 = c.psa10; setDetailCards[idx].priceSource = c.priceSource; }
+    }
+  }
+  openCatalogCard(c); // volledige re-render: nieuwe PSA10-tegel/grafiekpunt meteen zichtbaar
+}
+async function checkLiveCatalogPrice(c){
   const btn = document.getElementById('checkLiveCatalogPrice');
   if(!btn) return;
   const setName = setDetailSet ? setDetailSet.name : null;
-  openPriceChartingLookup({ name: c.name, set: setName || '' }, 'catalogLiveStatus', c.raw, c.psa10, (raw, psa10)=>{
-    if(raw != null){ c.raw = raw; c.priceSource = 'pricecharting'; }
-    if(psa10 != null) c.psa10 = psa10;
-    if(setDetailSet && raw != null){
-      recordCatalogSnapshot(setDetailSet.id, c.number, raw, psa10);
-      if(Array.isArray(setDetailCards)){
-        const idx = setDetailCards.findIndex(x => x.number === c.number && x.name === c.name);
-        if(idx >= 0){ setDetailCards[idx].raw = c.raw; setDetailCards[idx].psa10 = c.psa10; setDetailCards[idx].priceSource = c.priceSource; }
+  if(setDetailSet && setDetailSet.lang === 'ja' && justtcgApiKey()){
+    const statusEl = document.getElementById('catalogLiveStatus');
+    if(statusEl){ statusEl.style.display = ''; statusEl.textContent = 'JustTCG wordt gecheckt…'; }
+    try{
+      const priced = await justtcgSearchJapaneseCard(c.name, setName);
+      if(priced && (priced.raw != null || priced.psa10 != null)){
+        if(statusEl){ statusEl.style.display = 'none'; statusEl.textContent = ''; }
+        applyCatalogPriceResult(c, priced.raw, priced.psa10, 'justtcg');
+        return;
       }
+      if(statusEl) statusEl.textContent = 'Niets gevonden bij JustTCG -- probeer PriceCharting hieronder.';
+    }catch(e){
+      console.warn('JustTCG live-check mislukt', e);
+      if(statusEl) statusEl.textContent = 'JustTCG-opzoeking mislukt -- probeer PriceCharting hieronder.';
     }
-    openCatalogCard(c); // volledige re-render: nieuwe PSA10-tegel/grafiekpunt meteen zichtbaar
+  }
+  openPriceChartingLookup({ name: c.name, set: setName || '' }, 'catalogLiveStatus', c.raw, c.psa10, (raw, psa10)=>{
+    applyCatalogPriceResult(c, raw, psa10, 'pricecharting');
   });
 }
 
@@ -9300,6 +9426,7 @@ function renderSettingsInfo(){
 document.getElementById('openSettings').onclick = ()=>{
   renderSettingsInfo();
   loadClaudeKeyIntoSettings();
+  loadJusttcgKeyIntoSettings();
   document.getElementById('settingsOverlay').classList.add('show');
 };
 document.getElementById('closeSettings').onclick = ()=> document.getElementById('settingsOverlay').classList.remove('show');
@@ -9360,6 +9487,20 @@ document.getElementById('claudeKeySaveBtn').onclick = ()=>{
   localStorage.setItem('pkc_claude_model', model);
   const status = document.getElementById('claudeKeyStatus');
   status.textContent = key ? '✓ Opgeslagen op dit apparaat.' : 'Sleutel verwijderd -- AI-beeldherkenning staat weer uit.';
+};
+
+function loadJusttcgKeyIntoSettings(){
+  const key = justtcgApiKey();
+  document.getElementById('justtcgApiKey').value = key;
+  const status = document.getElementById('justtcgKeyStatus');
+  status.textContent = key ? '✓ Sleutel is ingesteld op dit apparaat.' : 'Nog geen sleutel ingesteld -- Japanse kaarten blijven handmatig invullen.';
+}
+document.getElementById('justtcgKeySaveBtn').onclick = ()=>{
+  const key = document.getElementById('justtcgApiKey').value.trim();
+  if(key) localStorage.setItem('pkc_justtcg_key', key);
+  else localStorage.removeItem('pkc_justtcg_key');
+  const status = document.getElementById('justtcgKeyStatus');
+  status.textContent = key ? '✓ Opgeslagen op dit apparaat.' : 'Sleutel verwijderd.';
 };
 
 /* ============================= GRADING TOOL ============================= */
