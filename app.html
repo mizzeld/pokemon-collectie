@@ -1538,6 +1538,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 </main>
 
 <main id="shopMain" style="display:none;">
+  <div class="searchrow"><input type="text" id="shopSearchInput" placeholder="Zoek op set, product of winkel…" autocomplete="off"></div>
   <div id="shopBody"></div>
 </main>
 
@@ -7838,6 +7839,9 @@ document.getElementById('setFilterInput').addEventListener('input', async ()=>{
   const sets = await currentSetsList();
   renderSetGrid(sets);
 });
+document.getElementById('shopSearchInput').addEventListener('input', ()=>{
+  renderShop();
+});
 document.getElementById('clearSetChoice').onclick = ()=>{
   selectedSet = null;
   localStorage.removeItem('pkc_selected_set');
@@ -8395,11 +8399,17 @@ function shopLogoFallback(img){
   img.parentElement.style.display = 'none';
 }
 
+// Cache voor setlogo's die via de live pokemontcg.io/TCGdex-databron zijn
+// bevestigd (zie renderShop()'s fetchAllSets().then hieronder). Losstaand van
+// de DOM zodat een her-render bij het filteren/zoeken de al-opgehaalde logo's
+// niet kwijtraakt en niet opnieuw hoeft te gokken.
+let shopLiveLogos = {};
+
 // Bouwt de HTML voor één set-kaart (logo + producten-grid). Gedeeld door de
 // "top verkochte sets"-sectie en de "speciale & limited edition"-sectie zodat
 // beide exact hetzelfde uiterlijk en dezelfde logo-fallbackketen gebruiken.
 function renderShopSetCard(s){
-  const logoSrc = s.setId ? `https://images.pokemontcg.io/${s.setId}/logo.png` : ((s.products.find(p=>p.img)||{}).img || '');
+  const logoSrc = shopLiveLogos[s.setId] || (s.setId ? `https://images.pokemontcg.io/${s.setId}/logo.png` : ((s.products.find(p=>p.img)||{}).img || ''));
   const logoOnError = s.setId ? ' onerror="shopLogoFallback(this)"' : '';
   return `
     <div class="shop-set" data-shop-set-id="${escapeHtml(s.setId || s.name)}">
@@ -8432,8 +8442,24 @@ function renderShopSetCard(s){
   `;
 }
 
+// Filtert één set op een zoekterm: match op setnaam, of op product-type/winkel
+// binnen die set. Bij een setnaam-match tonen we alle producten van die set;
+// bij een productmatch alleen de producten die matchen (rest van die set blijft
+// verborgen zodat de resultaten kort en relevant blijven).
+function filterShopSet(s, q){
+  if(!q) return s;
+  const nameMatch = s.name.toLowerCase().includes(q);
+  if(nameMatch) return s;
+  const products = s.products.filter(p =>
+    (p.type || '').toLowerCase().includes(q) || (p.shop || '').toLowerCase().includes(q)
+  );
+  if(products.length === 0) return null;
+  return { ...s, products };
+}
+
 function renderShop(){
   const wrap = document.getElementById('shopBody');
+  const q = (document.getElementById('shopSearchInput').value || '').trim().toLowerCase();
   const disclaimer = `
     <div class="shop-disclaimer">
       <b>Geen financieel advies.</b> Dit zijn koopsuggesties voor verzegelde producten, geen beleggingsadvies. Prijzen en voorraad zijn laatst gecontroleerd op <b>${SHOP_LAST_CHECKED}</b> bij Nederlandse/Belgische webshops en veranderen snel — controleer de winkelpagina altijd zelf voor je bestelt.<br><br>
@@ -8444,27 +8470,43 @@ function renderShop(){
     <div class="shop-disclaimer">
       Jubileum-, crossover- en andere speciale sets, van gloednieuw tot jaren uit productie. Sommige zijn niet meer verkrijgbaar voor een eerlijke prijs — dat is bewust toch opgenomen zodat je het verschil ziet, niet als koopadvies. Hoe ouder de set, hoe groter de kans dat je alleen tegen woekerprijzen iets vindt.
     </div>`;
+
+  const mainFiltered = SHOP_SETS.map(s => filterShopSet(s, q)).filter(Boolean);
+  const specialFiltered = SHOP_SPECIAL_SETS.map(s => filterShopSet(s, q)).filter(Boolean);
+
+  if(q && mainFiltered.length === 0 && specialFiltered.length === 0){
+    wrap.innerHTML = disclaimer + `<div class="empty">Niks gevonden voor "${escapeHtml(q)}".<br><span style="opacity:.6;font-size:12px;">Probeer een setnaam (bv. "Chaos Rising") of producttype (bv. "Booster Box").</span></div>`;
+    return;
+  }
+
   // Render meteen met de snelste gok voor het logo (geen netwerk-wachttijd),
   // en werk daarna elk logo-plaatje in place bij zodra de echte setdata binnen is.
   wrap.innerHTML = disclaimer
-    + SHOP_SETS.map(renderShopSetCard).join('')
-    + specialIntro
-    + SHOP_SPECIAL_SETS.map(renderShopSetCard).join('');
+    + mainFiltered.map(renderShopSetCard).join('')
+    + (q ? '' : specialIntro + specialFiltered.map(renderShopSetCard).join(''))
+    + (q && specialFiltered.length ? `<div class="shop-section-title">Speciale &amp; limited edition sets</div>` + specialFiltered.map(renderShopSetCard).join('') : '');
 
   // Zelfde databron als de "Zoeken"-pagina (fetchAllSets(): pokemontcg.io met
   // automatische terugval op TCGdex) -- die toont setlogo's al betrouwbaar,
   // inclusief voor gloednieuwe sets die pokemontcg.io zelf nog niet heeft.
   // Werkt op de achtergrond elk logo bij zodra dit binnen is, zonder de rest
-  // van de pagina (die geen netwerk nodig heeft) te laten wachten.
+  // van de pagina (die geen netwerk nodig heeft) te laten wachten. Resultaten
+  // worden ook in shopLiveLogos gecached zodat een her-render door te zoeken
+  // (renderShop() opnieuw aanroepen) de al-opgehaalde logo's niet kwijtraakt.
   fetchAllSets().then(liveSets=>{
-    if(currentView !== 'shop') return; // gebruiker is intussen al weg
     [...SHOP_SETS, ...SHOP_SPECIAL_SETS].forEach(s=>{
       if(!s.setId) return; // geen bekende set-id (bv. nog niet uitgebrachte set) -- niets om op te zoeken
       const found = liveSets.find(x => x.id === s.setId);
       const liveLogo = found && found.images && found.images.logo;
       if(!liveLogo) return;
-      const img = wrap.querySelector(`[data-shop-set-id="${s.setId}"] .shop-set-logo img`);
-      if(img && img.src !== liveLogo){ delete img.dataset.stage; img.src = liveLogo; }
+      shopLiveLogos[s.setId] = liveLogo;
+    });
+    if(currentView !== 'shop') return; // gebruiker is intussen al weg
+    wrap.querySelectorAll('.shop-set-logo img').forEach(img=>{
+      const setEl = img.closest('[data-shop-set-id]');
+      const setId = setEl && setEl.getAttribute('data-shop-set-id');
+      const liveLogo = setId && shopLiveLogos[setId];
+      if(liveLogo && img.src !== liveLogo){ delete img.dataset.stage; img.src = liveLogo; }
     });
   }).catch(()=>{ /* stille terugval -- de gegokte logo-URL (met symbol/foto-fallback) staat er al */ });
 }
