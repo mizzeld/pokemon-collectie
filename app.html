@@ -2903,44 +2903,56 @@ async function justtcgFetch(path, params){
 const JPY_TO_USD = 1/155;
 
 // Zoekt een Japanse kaart op JustTCG en geeft {raw, psa10} terug in USD, of null als
-// er niets bruikbaars gevonden is. JustTCG's documentatie noemt geen exacte "game"-
-// waarde voor Japanse Pokémon OCG-kaarten, dus dit probeert twee redelijke varianten
-// na elkaar; welke werkt, wordt pas duidelijk zodra er echt een sleutel getest wordt.
+// er niets bruikbaars gevonden is. Bevestigd (live getest met een echte sleutel,
+// aug. 2026): de game-waarde voor Japanse Pokémon OCG-kaarten is 'pokemon-japan',
+// CORS werkt gewoon vanaf GitHub Pages, en 'q' + 'graded=only' combineren geeft
+// 0 resultaten door een eigenaardigheid in JustTCG's API -- daarom hier bewust
+// TWEE losse aanroepen (raw, dan graded) i.p.v. één met graded=include. Dat kost
+// 2 credits per opzoeking i.p.v. 1, dus het gratis dagbudget (100/dag) dekt zo'n
+// 50 kaart-opzoekingen per dag.
 async function justtcgSearchJapaneseCard(name, setNameHint){
-  const attempts = [
-    { game: 'pokemon-japan', q: name },
-    { game: 'pokemon', regions: 'jp', q: name }
-  ];
-  for(const params of attempts){
-    try{
-      const json = await justtcgFetch('/cards', params);
-      if(!json) return null; // geen sleutel ingesteld
-      const list = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
-      if(!list.length) continue;
-      let best = list[0];
+  const key = justtcgApiKey();
+  if(!key) return null;
+  try{
+    const [rawJson, gradedJson] = await Promise.all([
+      justtcgFetch('/cards', { game: 'pokemon-japan', q: name, limit: 20 }),
+      justtcgFetch('/cards', { game: 'pokemon-japan', q: name, graded: 'only', limit: 20 })
+    ]);
+    const rawList = Array.isArray(rawJson && rawJson.data) ? rawJson.data : [];
+    const gradedList = Array.isArray(gradedJson && gradedJson.data) ? gradedJson.data : [];
+    if(!rawList.length && !gradedList.length) return null;
+
+    const pickBest = (list) => {
+      if(!list.length) return null;
       if(setNameHint){
         const needle = String(setNameHint).toLowerCase();
-        const hit = list.find(c => c.set && needle.includes(String(c.set).toLowerCase()));
-        if(hit) best = hit;
+        const hit = list.find(c => c.set && c.set.name && needle.includes(String(c.set.name).toLowerCase()));
+        if(hit) return hit;
       }
-      const variants = Array.isArray(best.variants) ? best.variants : [];
-      const rawVariant = variants.find(v => v.type === 'raw');
-      const psa10Variant = variants.find(v => v.type === 'graded' && v.grading && v.grading.company === 'PSA' && Number(v.grading.grade) === 10);
-      const pickPriceUsd = (variant) => {
-        if(!variant || !Array.isArray(variant.markets) || !variant.markets.length) return null;
-        const usd = variant.markets.find(m => m.currency === 'USD');
-        if(usd && typeof usd.price === 'number') return usd.price;
-        const jpy = variant.markets.find(m => m.currency === 'JPY');
-        if(jpy && typeof jpy.price === 'number') return jpy.price * JPY_TO_USD;
-        const any = variant.markets[0];
-        return any && typeof any.price === 'number' ? any.price : null;
-      };
-      const raw = pickPriceUsd(rawVariant);
-      const psa10 = pickPriceUsd(psa10Variant);
-      if(raw != null || psa10 != null) return { raw, psa10, setName: best.set || null };
-    }catch(e){ console.warn('JustTCG-opzoeking mislukt (' + params.game + ')', e); }
-  }
-  return null;
+      return list[0];
+    };
+    const bestRaw = pickBest(rawList);
+    const bestGraded = pickBest(gradedList);
+
+    const pickPriceUsd = (variant) => {
+      if(!variant || !Array.isArray(variant.markets) || !variant.markets.length) return null;
+      const usd = variant.markets.find(m => m.currency === 'USD');
+      if(usd && typeof usd.price === 'number') return usd.price;
+      const jpy = variant.markets.find(m => m.currency === 'JPY');
+      if(jpy && typeof jpy.price === 'number') return jpy.price * JPY_TO_USD;
+      const any = variant.markets[0];
+      return any && typeof any.price === 'number' ? any.price : null;
+    };
+
+    const rawVariant = bestRaw ? (bestRaw.variants || []).find(v => v.type === 'raw') : null;
+    const psa10Variant = bestGraded ? (bestGraded.variants || []).find(v => v.type === 'graded' && v.grading && v.grading.company === 'PSA' && Number(v.grading.grade) === 10) : null;
+
+    const raw = pickPriceUsd(rawVariant);
+    const psa10 = pickPriceUsd(psa10Variant);
+    const setName = (bestRaw && bestRaw.set && bestRaw.set.name) || (bestGraded && bestGraded.set && bestGraded.set.name) || null;
+    if(raw != null || psa10 != null) return { raw, psa10, setName };
+    return null;
+  }catch(e){ console.warn('JustTCG-opzoeking mislukt', e); return null; }
 }
 
 // pokemontcg.io: free card database with real images, used only to replace the old
