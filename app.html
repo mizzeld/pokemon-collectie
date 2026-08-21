@@ -6318,7 +6318,7 @@ function setSlotHTML(s){
     <div class="slot" data-id="${escapeHtml(s.id)}">
       <div class="art">${logo ? logoImgHTML(logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
       <div class="foot">
-        <div class="name">${escapeHtml(s.name)}${jaEnSetNameHTML(s.name)}</div>
+        <div class="name">${escapeHtml(s.name)}${jaEnSetNameHTML(s.name, 'style="display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px;"')}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
       </div>
     </div>`;
