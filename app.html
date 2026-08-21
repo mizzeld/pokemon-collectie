@@ -6045,6 +6045,185 @@ function findJaSetLogo(name){
   return null;
 }
 
+// Engelse (letterlijke) vertaling van Japanse setnamen -- bron: Bulbapedia's
+// "List of Japanese Pokémon Trading Card Game expansions" (kolom "Translated
+// name"), handmatig overgenomen voor elke set die TCGdex daadwerkelijk
+// teruggeeft. Twee sets heten allebei kaal "拡張パック" (het originele 1996
+// basispakket èn het eerste ADV-basispakket) -- die naam is met opzet
+// weggelaten, want deze tabel is op naam gesleuteld en zou anders het
+// verkeerde setje aan de verkeerde vertaling koppelen.
+const JA_SET_NAME_TRANSLATIONS = {
+  "ポケモンジャングル": "Pokémon Jungle",
+  "化石の秘密": "Mystery of the Fossils",
+  "ロケット団": "Rocket Gang",
+  "リーダーズスタジアム": "Leaders' Stadium",
+  "闇からの挑戦": "Challenge from the Darkness",
+  "金、銀、新世界へ...": "Gold, Silver, to a New World...",
+  "遺跡をこえて...": "Crossing the Ruins...",
+  "めざめる伝説": "Awakening Legends",
+  "闇、そして光へ...": "Darkness, and to Light...",
+  "ポケモンカード★VS": "Pokémon Card★VS",
+  "ポケモンカード★web": "Pokémon Card★web",
+  "基本拡張パック": "Base Expansion Pack",
+  "地図にない町": "The Town on No Map",
+  "海からの風": "Wind from the Sea",
+  "裂けた大地": "Split Earth",
+  "神秘なる山": "Mysterious Mountains",
+  "砂漠のきせき": "Miracle of the Desert",
+  "天空の覇者": "Rulers of the Heavens",
+  "とかれた封印": "Undone Seal",
+  "強化拡張パックex1マグマVSアクア ふたつの野望": "Magma VS Aqua: Two Ambitions",
+  "伝説の飛翔": "Flight of Legends",
+  "蒼空の激突": "Clash of the Blue Sky",
+  "ロケット団の逆襲": "Rocket Gang Strikes Back",
+  "金の空、銀の海": "Golden Sky, Silvery Ocean",
+  "まぼろしの森": "Mirage Forest",
+  "ホロンの研究塔": "Holon Research Tower",
+  "ホロンの幻影": "Holon Phantom",
+  "きせきの結晶": "Miracle Crystal",
+  "さいはての攻防": "Offense and Defense of the Furthest Ends",
+  "ワールドチャンピオンズパック": "World Champions Pack",
+  "頂上大激突": "Clash at the Summit",
+  "強化パック ロストリンク": "Lost Link",
+  "よみがえる伝説": "Reviving Legends",
+  "ハートゴールドコレクション": "HeartGold Collection",
+  "ソウルシルバーコレクション": "SoulSilver Collection",
+  "コレクションX": "Collection X",
+  "コレクションY": "Collection Y",
+  "ワイルドブレイズ": "Wild Blaze",
+  "ライジングフィスト": "Rising Fist",
+  "ファントムゲート": "Phantom Gate",
+  "ガイアボルケーノ": "Gaia Volcano",
+  "タイダルストーム": "Tidal Storm",
+  "エメラルドブレイク": "Emerald Break",
+  "バンデットリング": "Bandit Ring",
+  "マグマ団VSアクア団 ダブルクライシス": "Magma Gang VS Aqua Gang: Double Crisis",
+  "伝説キラコレクション": "Legendary Shine Collection",
+  "青い衝撃": "Blue Shock",
+  "赤い閃光": "Red Flash",
+  "破天の怒り": "Rage of the Broken Heavens",
+  "めざめる超王": "Awakening Psychic King",
+  "爆熱の闘士": "Fever-Burst Fighter",
+  "冷酷の反逆者": "Cruel Traitor",
+  "ポケキュンコレクション": "PokéKyun Collection",
+  "プレミアムチャンピオンパック EX×M×BREAK": "Premium Champion Pack EX×M×BREAK",
+  "ポケットモンスターカードゲーム 拡張パック 20th Anniversary": "Expansion Pack 20th Anniversary",
+  "ピカチュウと新しい仲間たち": "Pikachu's New Friends",
+  "コレクション サン": "Collection Sun",
+  "コレクションサン": "Collection Sun",
+  "コレクション ムーン": "Collection Moon",
+  "コレクションムーン": "Collection Moon",
+  "キミを待つ島々": "Islands Await You",
+  "アローラの月光": "Alolan Moonlight",
+  "闘う虹を見たか": "To Have Seen the Battle Rainbow",
+  "光を喰らう闇": "Darkness that Consumes Light",
+  "覚醒の勇者": "Awakened Heroes",
+  "超次元の暴獣": "Ultradimensional Beasts",
+  "ウルトラサン": "Ultra Sun",
+  "ウルトラムーン": "Ultra Moon",
+  "禁断の光": "Forbidden Light",
+  "裂空のカリスマ": "Sky-Splitting Charisma",
+  "超爆インパクト": "Super-Burst Impact",
+  "タッグボルト": "Tag Bolt",
+  "ダブルブレイズ": "Double Blaze",
+  "ミラクルツイン": "Miracle Twin",
+  "オルタージェネシス": "Alter Genesis",
+  "ソード": "Sword",
+  "シールド": "Shield",
+  "反逆クラッシュ": "Rebellion Crash",
+  "ムゲンゾーン": "Infinity Zone",
+  "仰天のボルテッカー": "Amazing Volt Tackle",
+  "一撃マスター": "Single Strike Master",
+  "連撃マスター": "Rapid Strike Master",
+  "白銀のランス": "Silver Lance",
+  "漆黒のガイスト": "Jet-Black Spirit",
+  "摩天パーフェクト": "Skyscraping Perfection",
+  "蒼空ストリーム": "Blue Sky Stream",
+  "フュージョンアーツ": "Fusion Arts",
+  "スターバース": "Star Birth",
+  "タイムゲイザー": "Time Gazer",
+  "スペースジャグラー": "Space Juggler",
+  "ロストアビス": "Lost Abyss",
+  "パラダイムトリガー": "Paradigm Trigger",
+  "スカーレットex": "Scarlet ex",
+  "バイオレットex": "Violet ex",
+  "スノーハザード": "Snow Hazard",
+  "クレイバースト": "Clay Burst",
+  "黒炎の支配者": "Ruler of the Black Flame",
+  "古代の咆哮": "Ancient Roar",
+  "未来の一閃": "Future Flash",
+  "ワイルドフォース": "Wild Force",
+  "サイバージャッジ": "Cyber Judge",
+  "変幻の仮面": "Transformation Mask",
+  "ステラミラクル": "Stellar Miracle",
+  "超電ブレイカー": "Super Electric Breaker",
+  "バトルパートナーズ": "Battle Partners",
+  "ロケット団の栄光": "Glory of the Rocket Gang",
+  "ブラックボルト": "Black Bolt",
+  "ホワイトフレア": "White Flare",
+  "メガブレイブ": "Mega Brave",
+  "メガシンフォニア": "Mega Symphonia",
+  "インフェルノX": "Inferno X",
+  "ムニキスゼロ": "Nihil Zero",
+  "ニンジャスピナー": "Ninja Spinner",
+  "アビスアイ": "Abyss Eye",
+  "ストームエメラルダ": "Storm Emeralda",
+  "MEGAドリームex": "MEGA Dream ex",
+  "スタートデッキ100 バトルコレクション": "Start Deck 100 Battle Collection",
+  "メガ プロモカード": "Mega Promotional Cards",
+  "トリプレットビート": "Triplet Beat",
+  "ポケモンカード151": "Pokémon Card 151",
+  "レイジングサーフ": "Raging Surf",
+  "クリムゾンヘイズ": "Crimson Haze",
+  "ナイトワンダラー": "Night Wanderer",
+  "楽園ドラゴーナ": "Paradise Dragona",
+  "熱風のアリーナ": "Hot Wind Arena",
+  "シャイニートレジャーex": "Shiny Treasure ex",
+  "テラスタルフェスex": "Terastal Fest ex",
+  "スターターセット テラスタイプ：ステラ ニンフィアex": "Starter Set Tera Type: Stellar Sylveon ex",
+  "スターターセット テラスタイプ：ステラ ソウブレイズex": "Starter Set Tera Type: Stellar Ceruledge ex",
+  "デッキビルドBOX ステラミラクル": "Deck Build Box: Stellar Miracle",
+  "VSTARユニバース": "VSTAR Universe",
+  "白熱のアルカナ": "Incandescent Arcana",
+  "ダークファンタズマ": "Dark Phantasma",
+  "Pokémon GO": "Pokémon GO",
+  "バトルリージョン": "Battle Region",
+  "VMAXクライマックス": "VMAX Climax",
+  "25th アニバーサリーコレクション": "25th Anniversary Collection",
+  "イーブイヒーローズ": "Eevee Heroes",
+  "双璧のファイター": "Peerless Fighters",
+  "シャイニースターV": "Shiny Star V",
+  "伝説の鼓動": "Legendary Heartbeat",
+  "爆炎ウォーカー": "Explosive Walker",
+  "VMAXライジング": "VMAX Rising",
+  "TAG TEAM GX タッグオールスターズ": "TAG TEAM GX: Tag All Stars",
+  "ドリームリーグ": "Dream League",
+  "リミックスバウト": "Remix Bout",
+  "スカイレジェンド": "Sky Legend",
+  "名探偵ピカチュウ": "Great Detective Pikachu",
+  "ジージーエンド": "GG End",
+  "フルメタルウォール": "Full Metal Wall",
+  "ナイトユニゾン": "Night Unison",
+  "ダークオーダー": "Dark Order",
+  "GXウルトラシャイニー": "GX Ultra Shiny",
+  "フェアリーライズ": "Fairy Rise",
+  "迅雷スパーク": "Thunderclap Spark",
+  "チャンピオンロード": "Champion Road",
+  "ドラゴンストーム": "Dragon Storm",
+  "ウルトラフォース": "Ultra Force",
+  "GXバトルブースト": "GX Battle Boost",
+  "ひかる伝説": "Shining Legends",
+  "サン＆ムーン": "Sun & Moon"
+};
+function translateSetName(jaName){
+  return JA_SET_NAME_TRANSLATIONS[String(jaName||'').trim()] || null;
+}
+function jaEnSetNameHTML(jaName, extraAttrs){
+  const en = translateSetName(jaName);
+  if(!en) return '';
+  return `<span class="ja-en-name" ${extraAttrs||''}>${escapeHtml(en)}</span>`;
+}
+
 // Alle 1025 Pokémon-soortnamen (katakana Japans -> Engels), opgehaald via PokeAPI
 // (pokeapi.co/api/v2/pokemon-species/{id}, "names"-array, ja/en) -- dezelfde bron
 // die de Pokédex-pagina al gebruikt. Hier als statische tabel ingebakken (net als
@@ -6139,7 +6318,7 @@ function setSlotHTML(s){
     <div class="slot" data-id="${escapeHtml(s.id)}">
       <div class="art">${logo ? logoImgHTML(logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
       <div class="foot">
-        <div class="name">${escapeHtml(s.name)}</div>
+        <div class="name">${escapeHtml(s.name)}${jaEnSetNameHTML(s.name)}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
       </div>
     </div>`;
@@ -8012,7 +8191,7 @@ async function openSetDetail(set){
   document.getElementById('setDetailHead').innerHTML = `
     <div style="display:flex; align-items:center; gap:10px;">
       ${set.images && set.images.logo ? logoImgHTML(set.images.logo, '', 'style="height:28px; width:auto; max-width:90px; object-fit:contain;"') : ''}
-      <h2 style="font-size:16px; margin:0;">${escapeHtml(set.name)}</h2>
+      <h2 style="font-size:16px; margin:0;">${escapeHtml(set.name)}${jaEnSetNameHTML(set.name, 'style="display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px;"')}</h2>
     </div>`;
   const useBtn = document.getElementById('useSetForSearch');
   // "Deze set gebruiken" scoopt de Kaarten-zoeken-pagina naar pokemontcg.io's
