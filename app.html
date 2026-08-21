@@ -2001,7 +2001,6 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       <p>Automatisch bepaald op basis van hoe de prijs van elke individueel gevolgde kaart is bewogen sinds we 'm zijn gaan volgen. Groen = flink gezakt (mogelijk instapmoment), rood = flink gestegen (misschien een moment om te verkopen). Bij sommige kaarten staat ook een korte toelichting van Claude, ververst tijdens de dagelijkse update.</p>
     </div>
     <div class="jg-grid" id="liveSignalsGrid"><div class="jg-loading">Signalen laden…</div></div>
-    <p class="jg-disclaimer">Geen financieel advies — dit zijn verzamelaarskaarten, geen beleggingsproduct. De regel is simpel (prijsverandering sinds het eerste gevolgde meetpunt) en zegt niets zeker over de toekomst; de markt kan grillig zijn.</p>
   </div>
 
   <div class="jg-section" id="jgChase">
@@ -2556,7 +2555,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       <div class="step active" id="gStepUpload">
         <div class="gradeintro">
           Maak een scherpe, goed verlichte foto van <b>voor- en achterkant</b>, recht van bovenaf, hele kaart in beeld.
-          De AI beoordeelt centrering, hoeken, randen en oppervlak zoals PSA dat doet — als indicatie, geen officiële grade.
+          De AI beoordeelt centrering, hoeken, randen en oppervlak zoals PSA dat doet.
         </div>
         <div class="slotsrow">
           <label class="photoslot" id="frontSlot">
@@ -3335,7 +3334,7 @@ function buildGradeAdviceHTML(c, costUsdOverride){
         <div>Netto bij PSA 10: <b style="color:${a.net10>=0?'var(--green)':'var(--red)'}">${a.net10>=0?'+':''}${fmt(a.net10)}</b> &middot; Netto bij PSA 9: <b style="color:${a.net9>=0?'var(--green)':'var(--red)'}">${a.net9>=0?'+':''}${fmt(a.net9)}</b></div>
       </div>
       <div style="font-size:10.5px; color:var(--muted); margin-top:8px; line-height:1.5;">
-        Kostenschatting o.b.v. onderzoek naar Nederlandse inzendservices (ca. €12–50 per kaart, afhankelijk van kaartwaarde/snelheid) en losse graders zoals PokeGrade (~€15 t/m €500 kaartwaarde) — pas het bedrag hierboven aan als jouw route anders uitpakt. PSA 9-prijs ${a.psa9IsEstimate ? 'is een schatting op basis van de curve tussen raw en PSA 10, geen individueel opgezochte marktprijs' : 'is een individueel opgezochte marktprijs'}. Geen garantie welke grade je krijgt en geen financieel advies.
+        Kostenschatting o.b.v. onderzoek naar Nederlandse inzendservices (ca. €12–50 per kaart, afhankelijk van kaartwaarde/snelheid) en losse graders zoals PokeGrade (~€15 t/m €500 kaartwaarde) — pas het bedrag hierboven aan als jouw route anders uitpakt. PSA 9-prijs ${a.psa9IsEstimate ? 'is een schatting op basis van de curve tussen raw en PSA 10, geen individueel opgezochte marktprijs' : 'is een individueel opgezochte marktprijs'}.
       </div>
     </div>`;
 }
@@ -8480,32 +8479,23 @@ function renderShop(){
     <a class="shop-beam-banner" href="https://beamcardshop.com/collections/all-pokemon" target="_blank" rel="noopener noreferrer">
       <div class="shop-beam-banner-text">
         <div class="shop-beam-banner-title">🔔 Beam Card Shop</div>
-        <div class="shop-beam-banner-sub">Eerlijke prijzen, anti-scalping beleid. Op een uitverkocht product staat een ingebouwde <b>"Notify me"</b>-knop — klik erop, vul je e-mail in en krijg zelf bericht zodra het weer op voorraad is. Elke dag gecontroleerd, zie ook de losse producten hieronder met dit label.</div>
       </div>
       <div class="shop-beam-banner-arrow">→</div>
     </a>`;
-  const disclaimer = `
-    <div class="shop-disclaimer">
-      <b>Geen financieel advies.</b> Dit zijn koopsuggesties voor verzegelde producten, geen beleggingsadvies. Prijzen en voorraad zijn laatst gecontroleerd op <b>${SHOP_LAST_CHECKED}</b> bij Nederlandse/Belgische webshops en veranderen snel — controleer de winkelpagina altijd zelf voor je bestelt.<br><br>
-      Op dit moment zijn vooral de drie nieuwste Mega Evolution-sets (Pitch Black, Chaos Rising, Perfect Order) tegen een <b>eerlijke prijs</b> te vinden. De meeste andere populaire sets zijn momenteel schaars en worden 2-3x boven de adviesprijs verkocht — die zijn gemarkeerd met ✕, koop die alleen bewust. Cardmarket.com is daarnaast altijd de moeite waard om zelf te vergelijken (grote, betrouwbare Europese marktplaats met prijzen per verkoper).
-    </div>`;
   const specialIntro = `
-    <div class="shop-section-title">Speciale &amp; limited edition sets</div>
-    <div class="shop-disclaimer">
-      Jubileum-, crossover- en andere speciale sets, van gloednieuw tot jaren uit productie. Sommige zijn niet meer verkrijgbaar voor een eerlijke prijs — dat is bewust toch opgenomen zodat je het verschil ziet, niet als koopadvies. Hoe ouder de set, hoe groter de kans dat je alleen tegen woekerprijzen iets vindt.
-    </div>`;
+    <div class="shop-section-title">Speciale &amp; limited edition sets</div>`;
 
   const mainFiltered = SHOP_SETS.map(s => filterShopSet(s, q)).filter(Boolean);
   const specialFiltered = SHOP_SPECIAL_SETS.map(s => filterShopSet(s, q)).filter(Boolean);
 
   if(q && mainFiltered.length === 0 && specialFiltered.length === 0){
-    wrap.innerHTML = beamBanner + disclaimer + `<div class="empty">Niks gevonden voor "${escapeHtml(q)}".<br><span style="opacity:.6;font-size:12px;">Probeer een setnaam (bv. "Chaos Rising") of producttype (bv. "Booster Box").</span></div>`;
+    wrap.innerHTML = beamBanner + `<div class="empty">Niks gevonden voor "${escapeHtml(q)}".<br><span style="opacity:.6;font-size:12px;">Probeer een setnaam (bv. "Chaos Rising") of producttype (bv. "Booster Box").</span></div>`;
     return;
   }
 
   // Render meteen met de snelste gok voor het logo (geen netwerk-wachttijd),
   // en werk daarna elk logo-plaatje in place bij zodra de echte setdata binnen is.
-  wrap.innerHTML = beamBanner + disclaimer
+  wrap.innerHTML = beamBanner
     + mainFiltered.map(renderShopSetCard).join('')
     + (q ? '' : specialIntro + specialFiltered.map(renderShopSetCard).join(''))
     + (q && specialFiltered.length ? `<div class="shop-section-title">Speciale &amp; limited edition sets</div>` + specialFiltered.map(renderShopSetCard).join('') : '');
@@ -9487,9 +9477,6 @@ function renderGradeResult(r){
       <div class="sub">${r.summary||''}</div>
     </div>
     ${rows}
-    <div class="gradedisclaimer">
-      Dit is een AI-inschatting op basis van je foto's, geen officiële grade. PSA en andere graders werken onder vergroting/loep en kijken ook naar dingen die op een foto niet altijd zichtbaar zijn (bijv. lichte oppervlaktekrassen of print lines). Gebruik dit als indicatie of je het waard vindt om professioneel te laten graden — niet als garantie voor het uiteindelijke resultaat.
-    </div>
   `;
 }
 
