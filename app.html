@@ -33,10 +33,15 @@
   --text:#f1ede3;
   --muted:#8b93a1;
   --muted2:#5d636e;
-  /* Enkel, rustig accent (voorheen een feller, verzadigder rood) -- gebruikt
-     consistent voor CTA's/badges in plaats van meerdere concurrerende kleuren. */
+  /* Enkel, rustig accent -- gebruikt consistent voor CTA's/badges in plaats
+     van meerdere concurrerende kleuren. */
   --red:#a52a44;
   --redglow: rgba(165,42,68,.32);
+  /* Merkaccent voor knoppen/badges/CTA's (blauw, voor een strakkere/zakelijkere
+     uitstraling) -- los van --red, dat specifiek voor koers-dalingen/fouten
+     blijft staan zodat "rood = negatief" betekenisvol blijft in grafieken. */
+  --accent:#3b82f6;
+  --accentglow: rgba(59,130,246,.35);
   /* Voorheen een driekleurige regenboog-verloop (cyaan/paars/goud) voor "gold"
      statistieken en het schitter-effect op de Kaart van de Dag -- nu één
      ingetogen goud/brons-tint zodat het een subtiele metallic glans is i.p.v.
@@ -65,6 +70,8 @@ html[data-theme="light"]{
   --muted:#6d6656;
   --muted2:#9c9480;
   --redglow: rgba(165,42,68,.20);
+  --accent:#2563eb;
+  --accentglow: rgba(37,99,235,.22);
   --invert-bg:#201d16; --invert-text:#fff;
   --placeholder-text: rgba(0,0,0,.32);
   --header-bg-a: rgba(255,255,255,.97); --header-bg-b: rgba(245,241,230,.92);
@@ -129,7 +136,7 @@ header{
 .langbtn.active{background:var(--invert-bg); color:var(--invert-text); border-color:var(--invert-bg);}
 .brand .tag{
   font-family:'Oswald'; font-weight:700; font-size:11px; letter-spacing:.18em;
-  background:var(--red); color:#fff; padding:3px 7px; border-radius:2px;
+  background:var(--accent); color:#fff; padding:3px 7px; border-radius:2px;
 }
 .brand h1{font-size:20px; margin:0; font-weight:600; letter-spacing:.03em;}
 .mini-summary{font-size:12.5px; color:var(--muted); margin-bottom:8px;}
@@ -280,7 +287,7 @@ main{padding:14px 12px 8px;}
   .fab-grade{ bottom:calc(136px + env(safe-area-inset-bottom)) !important; }
 }
 .gobtn{
-  flex:0 0 auto; background:var(--red); color:#fff; border:none; border-radius:8px;
+  flex:0 0 auto; background:var(--accent); color:#fff; border:none; border-radius:8px;
   padding:0 16px; font-family:'Oswald'; font-weight:600; font-size:13px; letter-spacing:.03em; cursor:pointer;
 }
 .hint{font-size:11px; color:var(--muted2); margin-top:7px;}
@@ -475,9 +482,9 @@ main{padding:14px 12px 8px;}
 
 .fab{
   position:fixed; right:16px; bottom:20px; z-index:30;
-  background:var(--red); color:#fff; border:none; border-radius:30px;
+  background:var(--accent); color:#fff; border:none; border-radius:30px;
   padding:14px 20px; font-family:'Oswald'; font-weight:600; font-size:14px; letter-spacing:.03em;
-  box-shadow:0 6px 20px var(--redglow); display:flex; align-items:center; gap:8px; cursor:pointer;
+  box-shadow:0 6px 20px var(--accentglow); display:flex; align-items:center; gap:8px; cursor:pointer;
 }
 .fab svg{width:16px; height:16px;}
 .fab-grade{
@@ -505,7 +512,7 @@ main{padding:14px 12px 8px;}
   font-family:'IBM Plex Mono'; padding:2px 6px; border-radius:8px; z-index:2;
 }
 .analyzebtn{
-  width:100%; background:var(--red); color:#fff; border:none; padding:13px; border-radius:10px;
+  width:100%; background:var(--accent); color:#fff; border:none; padding:13px; border-radius:10px;
   font-family:'Oswald'; font-weight:700; font-size:14px; letter-spacing:.03em; cursor:pointer;
 }
 .analyzebtn:disabled{background:var(--panel2); color:var(--muted2); cursor:not-allowed;}
@@ -997,7 +1004,7 @@ main{padding:14px 12px 8px;}
 .uploadbox svg{width:34px; height:34px; color:var(--muted); margin-bottom:10px;}
 .uploadbox p{color:var(--muted); font-size:13px; margin:0 0 16px;}
 .uploadbtn{
-  display:inline-flex; align-items:center; gap:8px; background:var(--red); color:#fff; border:none;
+  display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; border:none;
   padding:11px 18px; border-radius:8px; font-family:'Oswald'; font-weight:600; font-size:13px; letter-spacing:.03em;
   cursor:pointer;
 }
@@ -4520,7 +4527,7 @@ function openDetail(id){
       <h2>${escapeHtml(c.name)}${c.lang==='jp' ? ' <span class="langbadge" style="position:static; display:inline-block; vertical-align:middle;">JP</span>' + jaEnNameHTML(c.name, 'style="display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:2px;"') : ''}</h2>
       <div class="setline mono">${escapeHtml(c.set)}</div>
       <div class="rarity">${tierOf(c)==='chase'?'★ Chase card':tierOf(c)==='rare'?'Rare':'Bulk'}</div>${condHTML}
-      ${c.isGraded ? `<div class="rarity" style="border-color:var(--red); color:#f2a3ae; margin-top:6px;">🏷️ ${escapeHtml(c.gradingCompany||'Graded')} ${escapeHtml(c.grade||'')}${c.certNumber ? ' · Cert #'+escapeHtml(c.certNumber) : ''}</div>` : ''}
+      ${c.isGraded ? `<div class="rarity" style="border-color:var(--accent); color:#9dc4ff; margin-top:6px;">🏷️ ${escapeHtml(c.gradingCompany||'Graded')} ${escapeHtml(c.grade||'')}${c.certNumber ? ' · Cert #'+escapeHtml(c.certNumber) : ''}</div>` : ''}
       <br>
       <button class="addphotobtn" id="addPhotoBtn">${c.photo?'Foto vervangen':'+ Eigen foto toevoegen'}</button>
       ${c.photo ? `<button class="addphotobtn" id="removePhotoBtn" style="margin-top:6px;">🗑️ Foto verwijderen</button>` : ''}
