@@ -2181,7 +2181,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <div class="jg-section-head">
       <p class="jg-eyebrow">Wat kun je kopen</p>
       <h3 class="jg-h2">Kies je budget</h3>
-      <p>Schuif naar wat je wilt uitgeven aan kaarten en boxen. Je krijgt direct een aanbevolen aankoopstrategie en een chase card die daarbij past.</p>
+      <p>Schuif naar wat je wilt uitgeven aan kaarten en boxen, en bekijk daarna een aanbevolen aankoopstrategie en een chase card die daarbij past.</p>
     </div>
 
     <div class="jg-budget-panel">
@@ -2198,23 +2198,27 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         <span>€1000+</span>
       </div>
 
-      <div class="jg-reco">
-        <div class="jg-reco-block">
-          <p class="jg-tag">Aanbevolen aankoop</p>
-          <h4 id="jgRecoTitle">—</h4>
-          <p id="jgRecoBody">—</p>
-          <span class="jg-pill" id="jgRecoPill">—</span>
+      <button type="button" class="analyzebtn" id="jgRevealBtn" style="margin-top:16px;">Bekijk aanbeveling voor dit budget</button>
+
+      <div id="jgRecoWrap" style="display:none;">
+        <div class="jg-reco">
+          <div class="jg-reco-block">
+            <p class="jg-tag">Aanbevolen aankoop</p>
+            <h4 id="jgRecoTitle">—</h4>
+            <p id="jgRecoBody">—</p>
+            <span class="jg-pill" id="jgRecoPill">—</span>
+          </div>
+          <div class="jg-reco-block">
+            <p class="jg-tag">Bijpassende chase card</p>
+            <h4 id="jgChaseTitle">—</h4>
+            <p id="jgChaseBody">—</p>
+            <span class="jg-pill" id="jgChasePill">—</span>
+          </div>
         </div>
-        <div class="jg-reco-block">
-          <p class="jg-tag">Bijpassende chase card</p>
-          <h4 id="jgChaseTitle">—</h4>
-          <p id="jgChaseBody">—</p>
-          <span class="jg-pill" id="jgChasePill">—</span>
+        <div class="jg-reco-block" style="margin-top:14px;">
+          <p class="jg-tag">Top 3 sets voor dit budget</p>
+          <div id="jgTopSetsList"></div>
         </div>
-      </div>
-      <div class="jg-reco-block" style="margin-top:14px;">
-        <p class="jg-tag">Top 3 sets voor dit budget</p>
-        <div id="jgTopSetsList"></div>
       </div>
     </div>
   </div>
@@ -10275,6 +10279,9 @@ function jgEnsureSetValues(){
   const chaseBody = document.getElementById('jgChaseBody');
   const chasePill = document.getElementById('jgChasePill');
   const topSetsList = document.getElementById('jgTopSetsList');
+  const revealBtn = document.getElementById('jgRevealBtn');
+  const recoWrap = document.getElementById('jgRecoWrap');
+  let revealed = false;
 
   function fmt(n){ return '€' + n.toLocaleString('nl-NL'); }
 
@@ -10308,11 +10315,12 @@ function jgEnsureSetValues(){
         </div>`;
     }).join('') + `<p style="font-size:11px;color:var(--muted);margin-top:8px;">Percentage = hoeveel van de losse kaarten uit die set nu ${fmt(v)} of meer waard zijn, op basis van echte TCGplayer/Cardmarket-marktprijzen. Geen echte pack-odds beschikbaar (die geeft geen enkele bron gratis vrij) -- dit is dus een indicatie op basis van wat er in de set zit, geen garantie per pack of box.</p>`;
   }
-  window.jgRerender = () => renderTopSets(parseInt(slider.value, 10));
+  window.jgRerender = () => { if(revealed) renderTopSets(parseInt(slider.value, 10)); };
 
   function update(){
     const v = parseInt(slider.value, 10);
     amountLabel.textContent = fmt(v) + (v >= 1000 ? '+' : '');
+    if(!revealed) return;
 
     let reco, chase;
 
@@ -10346,7 +10354,15 @@ function jgEnsureSetValues(){
   }
 
   slider.addEventListener('input', update);
-  update();
+  if(revealBtn){
+    revealBtn.onclick = () => {
+      revealed = true;
+      recoWrap.style.display = '';
+      revealBtn.style.display = 'none';
+      update(); // jgEnsureSetValues() draait al op de achtergrond sinds het openen van dit tabblad (zie switchView) -- renderTopSets pakt gewoon de cache of toont de laadstatus totdat die klaar is
+    };
+  }
+  update(); // zet alvast het bedrag-label goed (bv. na terugkeer op de pagina), zonder de aanbeveling te tonen
 })();
 
 /* ============================= INIT ============================= */
