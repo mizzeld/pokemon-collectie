@@ -76,6 +76,13 @@ html[data-theme="light"]{
   --placeholder-text: rgba(0,0,0,.32);
   --header-bg-a: rgba(255,255,255,.97); --header-bg-b: rgba(245,241,230,.92);
 }
+/* Lichte modus: donkerder blauw voor voldoende contrast van het "Binder"-logo
+   op een lichte achtergrond (de donkere versie hierboven is te licht om op
+   wit te lezen). */
+html[data-theme="light"] .brand .tag{
+  background:rgba(37,99,235,.08); color:#1d4ed8;
+  border-color:rgba(37,99,235,.35); box-shadow:0 0 8px rgba(37,99,235,.18);
+}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
 body{
@@ -136,7 +143,8 @@ header{
 .langbtn.active{background:var(--invert-bg); color:var(--invert-text); border-color:var(--invert-bg);}
 .brand .tag{
   font-family:'Oswald'; font-weight:700; font-size:11px; letter-spacing:.18em;
-  background:var(--accent); color:#fff; padding:3px 7px; border-radius:2px;
+  background:rgba(59,130,246,.12); color:#8ab4ff; padding:4px 9px; border-radius:7px;
+  border:1px solid rgba(59,130,246,.4); box-shadow:0 0 9px rgba(59,130,246,.25);
 }
 .brand h1{font-size:20px; margin:0; font-weight:600; letter-spacing:.03em;}
 .mini-summary{font-size:12.5px; color:var(--muted); margin-bottom:8px;}
