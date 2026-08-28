@@ -1001,6 +1001,48 @@ main{padding:14px 12px 8px;}
   padding:11px 18px; border-radius:8px; font-family:'Oswald'; font-weight:600; font-size:13px; letter-spacing:.03em;
   cursor:pointer;
 }
+
+/* ---------- LIVE SCANNEN (camera-scan i.p.v. losse foto) ---------- */
+.scanbox{ text-align:center; margin:6px 0 14px; }
+.scanbtn{
+  display:flex; align-items:center; justify-content:center; gap:9px; width:100%;
+  background:linear-gradient(135deg, var(--g2), var(--g1)); color:#1a1408; border:none;
+  padding:13px 18px; border-radius:10px; font-family:'Oswald'; font-weight:600; font-size:14px; letter-spacing:.03em;
+  cursor:pointer;
+}
+.scanbtn svg{ width:20px; height:20px; }
+.scanhint{ color:var(--muted); font-size:12px; margin:9px 0 0; }
+
+.scanview{
+  position:relative; width:100%; aspect-ratio:3/4; background:#000; border-radius:14px; overflow:hidden;
+}
+.scanview video{ width:100%; height:100%; object-fit:cover; display:block; }
+.scanframe{
+  position:absolute; left:11%; top:8%; width:78%; height:72%; pointer-events:none; transition:filter .25s;
+}
+.scancorner{
+  position:absolute; width:26px; height:26px; border-color:var(--g1); border-style:solid; border-width:0;
+  transition:border-color .25s;
+}
+.scancorner.tl{ top:0; left:0; border-top-width:3px; border-left-width:3px; border-radius:6px 0 0 0; }
+.scancorner.tr{ top:0; right:0; border-top-width:3px; border-right-width:3px; border-radius:0 6px 0 0; }
+.scancorner.bl{ bottom:0; left:0; border-bottom-width:3px; border-left-width:3px; border-radius:0 0 0 6px; }
+.scancorner.br{ bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 6px 0; }
+.scanline{
+  position:absolute; left:2%; right:2%; height:3px; top:2%;
+  background:linear-gradient(90deg, transparent, var(--g1), transparent);
+  box-shadow:0 0 12px 2px var(--g1);
+  animation:scanmove 1.7s ease-in-out infinite;
+}
+@keyframes scanmove{
+  0%{ top:2%; opacity:0; }
+  12%{ opacity:1; }
+  88%{ opacity:1; }
+  100%{ top:94%; opacity:0; }
+}
+.scanview.found .scancorner{ border-color:var(--green); }
+.scanview.found .scanline{ display:none; }
+.scanstatus{ text-align:center; color:var(--muted); font-size:12.5px; margin:10px 0 0; min-height:16px; }
 .loadingrow{display:flex; align-items:center; gap:12px; padding:26px 4px;}
 .spinner{
   width:24px; height:24px; border-radius:50%; flex:0 0 auto; position:relative;
@@ -2287,9 +2329,16 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       <h2 style="font-size:16px;margin:4px 0 2px;">Kaart toevoegen</h2>
 
       <div class="step active" id="stepUpload">
+        <div class="scanbox">
+          <button type="button" class="scanbtn" id="openLiveScan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M20 7V5a1 1 0 0 0-1-1h-2M4 17v2a1 1 0 0 0 1 1h2M20 17v2a1 1 0 0 1-1 1h-2"/><rect x="7" y="6" width="10" height="12" rx="1.2"/></svg>
+            Live scannen
+          </button>
+          <p class="scanhint">Houd de kaart voor je camera — hij wordt automatisch herkend, geen foto nodig.</p>
+        </div>
         <div class="uploadbox">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-          <p>Maak een foto van de kaart of kies er een uit je galerij.<br>Naam, set en prijzen worden automatisch opgezocht.</p>
+          <p>Of maak een foto van de kaart of kies er een uit je galerij.<br>Naam, set en prijzen worden automatisch opgezocht.</p>
           <label class="uploadbtn" for="fileInput">Foto maken / kiezen</label>
           <input type="file" id="fileInput" accept="image/*">
         </div>
@@ -2298,6 +2347,23 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
           <label style="margin:0;" for="fIsJapaneseUpload">Dit is een Japanse kaart (leest Japanse tekst van de foto)</label>
         </div>
         <div class="bulklink" id="openBulk">📑 Bulk toevoegen</div>
+      </div>
+
+      <div class="step" id="stepScan">
+        <div class="scanview" id="scanView">
+          <video id="scanVideo" autoplay playsinline muted></video>
+          <div class="scanframe" id="scanFrame">
+            <span class="scancorner tl"></span><span class="scancorner tr"></span>
+            <span class="scancorner bl"></span><span class="scancorner br"></span>
+            <div class="scanline" id="scanLine"></div>
+          </div>
+        </div>
+        <p class="scanstatus" id="scanStatusText">Richt de camera op de kaart…</p>
+        <div class="formrow" style="display:flex; align-items:center; gap:8px; justify-content:center; margin-top:6px;">
+          <input type="checkbox" id="fIsJapaneseScan" style="width:auto;">
+          <label style="margin:0;" for="fIsJapaneseScan">Dit is een Japanse kaart</label>
+        </div>
+        <div class="retrylink" id="cancelScan">✕ Annuleren</div>
       </div>
 
       <div class="step" id="stepLoading">
@@ -4700,6 +4766,7 @@ function showStep(id){
   document.getElementById(id).classList.add('active');
 }
 function resetAddFlow(){
+  stopScanStream();
   showStep('stepUpload');
   document.getElementById('fileInput').value='';
   document.getElementById('fPaid').value = '';
@@ -4718,7 +4785,10 @@ document.getElementById('openAdd').onclick = ()=>{
   resetAddFlow();
   document.getElementById('addOverlay').classList.add('show');
 };
-document.getElementById('closeAdd').onclick = ()=> document.getElementById('addOverlay').classList.remove('show');
+document.getElementById('closeAdd').onclick = ()=>{
+  stopScanStream();
+  document.getElementById('addOverlay').classList.remove('show');
+};
 document.getElementById('retryLink').onclick = resetAddFlow;
 document.getElementById('openBulk').onclick = ()=>{
   document.getElementById('addOverlay').classList.remove('show');
@@ -4787,33 +4857,174 @@ document.getElementById('fileInput').onchange = async (e)=>{
       catch(e){ console.warn('Claude-beeldherkenning mislukt:', e.message||e); }
     }
 
-    const badge = document.getElementById('ocrStatusBadge');
-    if(match){
-      pendingAutoMatch = match;
-      document.getElementById('fName').value = match.name;
-      document.getElementById('fSet').value = match.set;
-      if(match.raw != null) document.getElementById('fRaw').value = match.raw;
-      if(match.psa10 != null) document.getElementById('fPsa10').value = match.psa10;
-      if(match.rarity) document.getElementById('fNote').value = match.rarity;
-      badge.style.display = '';
-      badge.style.cssText = 'display:block;margin-bottom:10px;padding:8px 12px;border-radius:8px;background:rgba(95,191,131,.15);color:var(--green);font-size:12.5px;';
-      badge.textContent = usedClaudeVision
-        ? '✓ Herkend met AI-beeldherkenning — controleer de gegevens' + (isJapanese ? ' en vul zelf de prijs in.' : '.')
-        : (isJapanese
-          ? '✓ Automatisch herkend (naam/set) — vul zelf de prijs in, controleer de rest.'
-          : '✓ Automatisch herkend — controleer de gegevens en pas aan indien nodig.');
-    }else{
-      document.getElementById('fName').value = '';
-      document.getElementById('fSet').value = '';
-      badge.style.display = '';
-      badge.style.cssText = 'display:block;margin-bottom:10px;padding:8px 12px;border-radius:8px;background:rgba(200,16,46,.12);color:var(--red);font-size:12.5px;';
-      badge.textContent = 'Kon de kaart niet automatisch herkennen (onduidelijke foto of onbekende kaart) — vul hieronder zelf even in.';
-    }
+    applyRecognitionResult(match, usedClaudeVision, isJapanese);
     showStep('stepConfirm');
   }catch(err){
     document.getElementById('errText').textContent = 'Kon de foto niet verwerken: ' + err.message + '. Je kunt de kaart wel gewoon handmatig invoeren.';
     showStep('stepError');
   }
+};
+
+// Gedeeld door zowel de "foto kiezen"-flow als de live-scanner: vult het
+// bevestigingsformulier met een herkenningsresultaat (of toont de rode
+// "niet herkend"-melding als match null is), zonder de logica dubbel te
+// hoeven onderhouden.
+function applyRecognitionResult(match, usedClaudeVision, isJapanese){
+  const badge = document.getElementById('ocrStatusBadge');
+  if(match){
+    pendingAutoMatch = match;
+    document.getElementById('fName').value = match.name;
+    document.getElementById('fSet').value = match.set;
+    if(match.raw != null) document.getElementById('fRaw').value = match.raw;
+    if(match.psa10 != null) document.getElementById('fPsa10').value = match.psa10;
+    if(match.rarity) document.getElementById('fNote').value = match.rarity;
+    badge.style.display = '';
+    badge.style.cssText = 'display:block;margin-bottom:10px;padding:8px 12px;border-radius:8px;background:rgba(95,191,131,.15);color:var(--green);font-size:12.5px;';
+    badge.textContent = usedClaudeVision
+      ? '✓ Herkend met AI-beeldherkenning — controleer de gegevens' + (isJapanese ? ' en vul zelf de prijs in.' : '.')
+      : (isJapanese
+        ? '✓ Automatisch herkend (naam/set) — vul zelf de prijs in, controleer de rest.'
+        : '✓ Automatisch herkend — controleer de gegevens en pas aan indien nodig.');
+  }else{
+    document.getElementById('fName').value = '';
+    document.getElementById('fSet').value = '';
+    badge.style.display = '';
+    badge.style.cssText = 'display:block;margin-bottom:10px;padding:8px 12px;border-radius:8px;background:rgba(200,16,46,.12);color:var(--red);font-size:12.5px;';
+    badge.textContent = 'Kon de kaart niet automatisch herkennen (onduidelijke foto of onbekende kaart) — vul hieronder zelf even in.';
+  }
+}
+
+/* ============================= LIVE SCANNEN (camera-viewfinder i.p.v. losse foto) ============================= */
+// Opent de camera rechtstreeks in de browser (getUserMedia), toont een
+// scan-animatie over het beeld, en probeert op de achtergrond herhaaldelijk
+// (elke ~300ms) een los frame te herkennen met dezelfde gratis OCR die de
+// "foto kiezen"-flow ook gebruikt -- zodra er een match is, stopt de camera
+// vanzelf en gaat het scherm door naar het bevestigingsformulier, precies
+// zoals bij een losse foto. Geen nieuwe herkenningslogica, alleen een andere
+// manier om er een frame in te krijgen.
+let scanStream = null;
+let scanActive = false;
+const SCAN_MAX_ATTEMPTS = 14; // ruim voldoende pogingen (~15-20s) voor je 'm goed voor de camera hebt
+
+function captureVideoFrame(video, maxW, quality){
+  maxW = maxW || 480; quality = quality || 0.75;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if(!vw || !vh) return null;
+  const scale = Math.min(1, maxW/vw);
+  const w = Math.round(vw*scale), h = Math.round(vh*scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+function stopScanStream(){
+  scanActive = false;
+  if(scanStream){
+    scanStream.getTracks().forEach(t=>t.stop());
+    scanStream = null;
+  }
+}
+
+async function openLiveScan(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    document.getElementById('errText').textContent = 'Live scannen wordt niet ondersteund in deze browser. Je kunt de kaart wel gewoon met een foto toevoegen.';
+    showStep('stepError');
+    return;
+  }
+  document.getElementById('scanView').classList.remove('found');
+  document.getElementById('scanStatusText').textContent = 'Richt de camera op de kaart…';
+  document.getElementById('fIsJapaneseScan').checked = false;
+  showStep('stepScan');
+  try{
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  }catch(e){
+    document.getElementById('errText').textContent = 'Kon geen toegang krijgen tot de camera (' + (e.message||'permissie geweigerd') + '). Je kunt de kaart wel gewoon met een foto toevoegen.';
+    showStep('stepError');
+    return;
+  }
+  const video = document.getElementById('scanVideo');
+  video.srcObject = scanStream;
+  try{ await video.play(); }catch(e){ /* sommige browsers autoplayen al vanzelf */ }
+  scanLoop(video);
+}
+
+async function scanLoop(video){
+  scanActive = true;
+  let attempts = 0;
+  let lastDisplayDataUrl = null, lastOcrDataUrl = null;
+  const statusEl = document.getElementById('scanStatusText');
+  const isJapanese = document.getElementById('fIsJapaneseScan').checked;
+
+  while(scanActive && attempts < SCAN_MAX_ATTEMPTS){
+    attempts++;
+    // Wacht op het eerste frame -- video.videoWidth is 0 zolang de stream nog opstart.
+    if(!video.videoWidth){ await new Promise(r=>setTimeout(r, 200)); continue; }
+
+    const ocrDataUrl = captureVideoFrame(video, 1000, 0.9);
+    if(!ocrDataUrl){ await new Promise(r=>setTimeout(r, 200)); continue; }
+    lastOcrDataUrl = ocrDataUrl;
+    lastDisplayDataUrl = captureVideoFrame(video, 480, 0.75);
+
+    statusEl.textContent = attempts <= 2 ? 'Richt de camera op de kaart…' : 'Kaart scannen…';
+
+    let match = null;
+    try{
+      match = isJapanese ? await autoRecognizeJapaneseCard(ocrDataUrl) : await autoRecognizeCard(ocrDataUrl);
+    }catch(e){ console.warn('Live-scan herkenning mislukt:', e.message||e); }
+
+    if(!scanActive) return; // geannuleerd terwijl de herkenning liep
+
+    if(match){
+      finishScan(match, false, isJapanese, lastDisplayDataUrl);
+      return;
+    }
+    await new Promise(r=>setTimeout(r, 300));
+  }
+
+  if(!scanActive) return;
+
+  // Gratis herkenning lukte niet binnen het aantal pogingen -- zelfde terugval
+  // als bij een losse foto: probeer AI-beeldherkenning als er een sleutel is,
+  // anders naar het bevestigingsformulier met lege velden.
+  let match = null, usedClaudeVision = false;
+  if(lastOcrDataUrl && localStorage.getItem('pkc_claude_api_key')){
+    statusEl.textContent = 'Gratis herkenning lukte niet, probeer het met AI-beeldherkenning…';
+    try{ match = await claudeVisionRecognize(lastOcrDataUrl, isJapanese); if(match) usedClaudeVision = true; }
+    catch(e){ console.warn('Claude-beeldherkenning mislukt:', e.message||e); }
+  }
+  if(!scanActive) return;
+  finishScan(match, usedClaudeVision, isJapanese, lastDisplayDataUrl);
+}
+
+function finishScan(match, usedClaudeVision, isJapanese, displayDataUrl){
+  stopScanStream();
+  if(match){
+    document.getElementById('scanView').classList.add('found');
+    document.getElementById('scanStatusText').textContent = '✓ Kaart herkend!';
+  }
+  pendingPhoto = displayDataUrl || pendingPhoto;
+  document.getElementById('cpImg').src = pendingPhoto || '';
+  document.getElementById('fRaw').value = '';
+  document.getElementById('fPsa10').value = '';
+  document.getElementById('fNote').value = '';
+  document.getElementById('fIsGraded').checked = false;
+  document.getElementById('fGradingCo').value = '';
+  document.getElementById('fGrade').value = '';
+  document.getElementById('fCertNumber').value = '';
+  document.getElementById('gradedFields').style.display = 'none';
+  document.getElementById('fIsJapanese').checked = isJapanese;
+  document.getElementById('jpNote').style.display = isJapanese ? '' : 'none';
+  applyRecognitionResult(match, usedClaudeVision, isJapanese);
+  // Klein oponthoud zodat het groene "herkend"-vinkje nog even zichtbaar is
+  // voordat we doorschakelen -- voelt anders te abrupt.
+  setTimeout(()=> showStep('stepConfirm'), match ? 450 : 0);
+}
+
+document.getElementById('openLiveScan').onclick = openLiveScan;
+document.getElementById('cancelScan').onclick = ()=>{
+  stopScanStream();
+  showStep('stepUpload');
 };
 
 let fNameLookupTimer = null;
@@ -6270,6 +6481,30 @@ function jaEnNameHTML(jaName, extraAttrs){
   if(!en) return '';
   return `<span class="ja-en-name" ${extraAttrs||''}>${escapeHtml(en)}</span>`;
 }
+// Omgekeerde tabel (Engelse soortnaam, lowercase -> Japanse naam) zodat je ook
+// een Engelse naam kan intypen in het zoekveld en toch de Japanse kaart vindt.
+const EN_TO_JA_SPECIES = {};
+for(const ja of Object.keys(JA_TO_EN_SPECIES)){
+  const en = JA_TO_EN_SPECIES[ja].toLowerCase();
+  if(!EN_TO_JA_SPECIES[en]) EN_TO_JA_SPECIES[en] = ja;
+}
+// Zoekt de Japanse soortnaam bij een (mogelijk Engelse) zoekterm: eerst exacte
+// match, anders de kortste soortnaam die met de zoekterm begint (zodat "pika"
+// ook "Pikachu" -> "ピカチュウ" oplevert). Retourneert null als niets matcht
+// (dan wordt de zoekterm gewoon ongewijzigd doorgestuurd, zoals voorheen).
+function translateEnglishQueryToJapanese(q){
+  const ql = String(q||'').trim().toLowerCase();
+  if(!ql) return null;
+  if(EN_TO_JA_SPECIES[ql]) return EN_TO_JA_SPECIES[ql];
+  let bestEn = null, bestJa = null;
+  for(const en of Object.keys(EN_TO_JA_SPECIES)){
+    if(en.startsWith(ql) && (!bestEn || en.length < bestEn.length)){
+      bestEn = en;
+      bestJa = EN_TO_JA_SPECIES[en];
+    }
+  }
+  return bestJa;
+}
 async function fetchAllSetsJa(){
   if(allSetsJa) return allSetsJa;
   try{
@@ -6339,7 +6574,7 @@ function wireSetSlots(grid, sets){
 function renderSetGrid(sets){
   const grid = document.getElementById('setGrid');
   const filterVal = (document.getElementById('setFilterInput').value || '').trim().toLowerCase();
-  const filtered = filterVal ? sets.filter(s => s.name.toLowerCase().includes(filterVal)) : sets;
+  const filtered = filterVal ? sets.filter(s => s.name.toLowerCase().includes(filterVal) || (translateSetName(s.name)||'').toLowerCase().includes(filterVal)) : sets;
 
   if(filterVal){
     grid.className = 'grid';
@@ -7238,7 +7473,7 @@ async function loadPackSetGrid(){
 function renderPackSetGridList(sets){
   const grid = document.getElementById('packSetGrid');
   const filterVal = (document.getElementById('packSetFilter').value || '').trim().toLowerCase();
-  const filtered = filterVal ? sets.filter(s => s.name.toLowerCase().includes(filterVal)) : sets;
+  const filtered = filterVal ? sets.filter(s => s.name.toLowerCase().includes(filterVal) || (translateSetName(s.name)||'').toLowerCase().includes(filterVal)) : sets;
   grid.innerHTML = filtered.map(s => `
     <div class="slot" data-id="${escapeHtml(s.id)}">
       <div class="art">${s.images && s.images.logo ? logoImgHTML(s.images.logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
@@ -8364,7 +8599,15 @@ async function searchCardsViaAPI(q){
 // nooit een marktprijs terug (raw_usd blijft null), wat openSearchDetail()
 // en de resultatenkaart hieronder al netjes tonen als "—" / "onbekend".
 async function searchCardsViaAPIJa(q){
-  const list = await tcgdexQueryJa('/cards', { name: 'like:' + q, 'pagination:itemsPerPage': '15' });
+  // Als de zoekterm er Engels/Latijns uitziet (geen Japanse tekens), probeer 'm
+  // te vertalen naar de Japanse soortnaam voordat we TCGdex bevragen -- anders
+  // vindt een letterlijke zoekterm als "Pikachu" nooit "ピカチュウ".
+  let query = q;
+  if(!/[぀-ヿ一-鿿]/.test(q)){
+    const ja = translateEnglishQueryToJapanese(q);
+    if(ja) query = ja;
+  }
+  const list = await tcgdexQueryJa('/cards', { name: 'like:' + query, 'pagination:itemsPerPage': '15' });
   return (Array.isArray(list) ? list : []).map(card => {
     const derivedSetId = (card.id && card.localId) ? card.id.slice(0, card.id.length - card.localId.length - 1) : '';
     return {
