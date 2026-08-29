@@ -1738,9 +1738,15 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     max-width:260px;
     margin:0 auto;
     border-radius:16px;
+    /* BUG (gevonden aug. 2026): images.pokemontcg.io/me2pt5/284.png laadt
+       zonder fout, maar is voor deze (nog verse) set een generieke
+       "artwork volgt nog"-kaartrug i.p.v. de echte Mega Gengar ex-illustratie
+       -- vandaar dat hier nooit een herkenbare foto te zien was, ook al
+       faalde er niets zichtbaars. De TCGdex-URL hieronder is wel de echte
+       kaartafbeelding (geverifieerd). */
     background:
       linear-gradient(180deg, rgba(23,26,39,.08) 0%, rgba(23,26,39,.55) 60%, rgba(17,19,28,.92) 100%),
-      url('https://images.pokemontcg.io/me2pt5/284.png') center/cover no-repeat,
+      url('https://assets.tcgdex.net/en/me/me02.5/284/high.webp') center/cover no-repeat,
       linear-gradient(135deg, #23283b, #171a27);
     border:1px solid var(--jg-line);
     box-shadow: 0 24px 50px -18px rgba(0,0,0,0.6);
@@ -2079,7 +2085,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         <div class="jg-card-head">
           <div class="jg-thumb">
             <div class="jg-thumb-ph">Mega Gengar ex</div>
-            <img src="https://images.pokemontcg.io/me2pt5/284.png" alt="Mega Gengar ex" loading="lazy" onerror="jgImgFallback(this, 'Mega Gengar ex')">
+            <img src="https://images.pokemontcg.io/me2pt5/284.png" alt="Mega Gengar ex" loading="lazy" onerror="jgImgFallback(this, 'Mega Gengar ex', '284')">
           </div>
           <div class="jg-head-txt">
             <p class="jg-rank">#1 — grootste chase van het jaar</p>
@@ -2096,7 +2102,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         <div class="jg-card-head">
           <div class="jg-thumb">
             <div class="jg-thumb-ph">Umbreon ex</div>
-            <img src="https://images.pokemontcg.io/sv8pt5/161.png" alt="Umbreon ex" loading="lazy" onerror="jgImgFallback(this, 'Umbreon ex')">
+            <img src="https://images.pokemontcg.io/sv8pt5/161.png" alt="Umbreon ex" loading="lazy" onerror="jgImgFallback(this, 'Umbreon ex', '161')">
           </div>
           <div class="jg-head-txt">
             <p class="jg-rank">#2 — nog altijd de publiekslieveling</p>
@@ -2113,7 +2119,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         <div class="jg-card-head">
           <div class="jg-thumb">
             <div class="jg-thumb-ph">Pikachu ex</div>
-            <img src="https://images.pokemontcg.io/sv8/238.png" alt="Pikachu ex" loading="lazy" onerror="jgImgFallback(this, 'Pikachu ex')">
+            <img src="https://images.pokemontcg.io/sv8/238.png" alt="Pikachu ex" loading="lazy" onerror="jgImgFallback(this, 'Pikachu ex', '238')">
           </div>
           <div class="jg-head-txt">
             <p class="jg-rank">#3 — beste prijs/kans-verhouding</p>
@@ -2144,7 +2150,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         <div class="jg-card-head">
           <div class="jg-thumb">
             <div class="jg-thumb-ph">Charizard ex</div>
-            <img src="https://images.pokemontcg.io/sv3/223.png" alt="Charizard ex" loading="lazy" onerror="jgImgFallback(this, 'Charizard ex')">
+            <img src="https://images.pokemontcg.io/sv3/223.png" alt="Charizard ex" loading="lazy" onerror="jgImgFallback(this, 'Charizard ex', '223')">
           </div>
           <div class="jg-head-txt">
             <p class="jg-rank">#5 — twee iconen in één kaart</p>
@@ -2161,7 +2167,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         <div class="jg-card-head">
           <div class="jg-thumb">
             <div class="jg-thumb-ph">Umbreon VMAX</div>
-            <img src="https://images.pokemontcg.io/swsh7/215.png" alt="Umbreon VMAX Alt Art" loading="lazy" onerror="jgImgFallback(this, 'Umbreon VMAX')">
+            <img src="https://images.pokemontcg.io/swsh7/215.png" alt="Umbreon VMAX Alt Art" loading="lazy" onerror="jgImgFallback(this, 'Umbreon VMAX', '215')">
           </div>
           <div class="jg-head-txt">
             <p class="jg-rank">#6 — voor de langetermijnverzamelaar</p>
@@ -3198,17 +3204,30 @@ async function tcgdexQueryJa(path, params){
 // this app's rule everywhere else: no photo beats a wrong photo.
 async function tcgdexFindImage(name, storedSetText){
   const number = extractCardNumber(storedSetText);
-  let list = [];
+  const toResult = (best) => (!best || !best.image)
+    ? { image: null, imgRef: null }
+    : { image: best.image + '/high.webp', imgRef: [best.id, best.image, 'tcgdex'] };
+
   if(number){
-    list = await tcgdexQuery('/cards', { name: 'like:' + name, localId: 'eq:' + number });
+    // BUG (gevonden aug. 2026): TCGdex's localId is niet consistent
+    // nul-opgevuld -- "39" heet daar soms "039" (vooral bij nieuwere sets
+    // zoals "Chaos Rising"). Een exacte "localId: eq:39"-filter op de API
+    // matcht die kaarten dan nooit, waardoor een veelvoorkomende naam zoals
+    // "Trevenant" altijd als "ambigu" werd afgewezen -- ook al stond de
+    // juiste kaart gewoon in de resultatenlijst. Haal daarom op naam op en
+    // vergelijk het nummer numeriek (parseInt negeert voorloopnullen) i.p.v.
+    // op de API's exacte stringfilter te vertrouwen.
+    let list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '75' });
+    if(!Array.isArray(list)) list = [];
+    const matches = list.filter(c => parseInt(c.localId, 10) === parseInt(number, 10));
+    if(matches.length === 1) return toResult(matches[0]);
+    if(matches.length > 1) return { image: null, imgRef: null }; // nog steeds ambigu -- niet gokken
+    // Geen nummer-match gevonden (bijv. kaart zat niet in de eerste 75) --
+    // val terug op de naam-only tak hieronder.
   }
-  if(!list.length){
-    list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '10' });
-  }
-  if(list.length !== 1) return { image: null, imgRef: null };
-  const best = list[0];
-  if(!best.image) return { image: null, imgRef: null };
-  return { image: best.image + '/high.webp', imgRef: [best.id, best.image, 'tcgdex'] };
+  const list = await tcgdexQuery('/cards', { name: 'like:' + name, 'pagination:itemsPerPage': '10' });
+  if(!Array.isArray(list) || list.length !== 1) return { image: null, imgRef: null };
+  return toResult(list[0]);
 }
 
 // TCGdex geeft setlogo's terug als een KALE basis-URL zonder extensie -- er
@@ -3275,9 +3294,16 @@ async function tcgdexSearchForHome(q, setId){
 // the same card up on TCGdex instead and swap the image in place rather than
 // just hiding it. Best-effort -- an ambiguous name (no set to narrow by)
 // still just hides the image, same as before this fallback existed.
-async function jgImgFallback(imgEl, name){
+async function jgImgFallback(imgEl, name, numberHint){
   try{
-    const found = await tcgdexFindImage(name, null);
+    // numberHint (het kaartnummer, bijv. "39") wordt doorgegeven zodat
+    // tcgdexFindImage() de zoekopdracht kan verfijnen op naam+nummer i.p.v.
+    // alleen op naam. Zonder nummer leverde een veelvoorkomende naam zoals
+    // "Trevenant" (die in meerdere sets bestaat) altijd >1 resultaat op,
+    // waardoor tcgdexFindImage() uit voorzorg niets teruggaf en de foto
+    // hier permanent verborgen bleef -- ook al stond de juiste kaart er wel
+    // degelijk tussen.
+    const found = await tcgdexFindImage(name, numberHint ? ('#' + numberHint) : null);
     if(found && found.image) imgEl.src = found.image;
     else imgEl.style.display = 'none';
   }catch(e){ imgEl.style.display = 'none'; }
@@ -7239,7 +7265,7 @@ async function renderLiveSignals(){
       <div class="jg-card-head">
         <div class="jg-thumb">
           <div class="jg-thumb-ph">${escapeHtml(r.name)}</div>
-          <img src="https://images.pokemontcg.io/${encodeURIComponent(r.setId)}/${encodeURIComponent(r.number)}.png" alt="${escapeHtml(r.name)}" data-cardname="${escapeHtml(r.name)}" loading="lazy" onerror="jgImgFallback(this, this.dataset.cardname)">
+          <img src="https://images.pokemontcg.io/${encodeURIComponent(r.setId)}/${encodeURIComponent(r.number)}.png" alt="${escapeHtml(r.name)}" data-cardname="${escapeHtml(r.name)}" data-cardnum="${escapeHtml(r.number)}" loading="lazy" onerror="jgImgFallback(this, this.dataset.cardname, this.dataset.cardnum)">
         </div>
         <div class="jg-head-txt">
           <span class="signal-badge">${r.sig.cls === 'buy' ? '🟢 ' : '🔴 '}${r.sig.label}</span>
