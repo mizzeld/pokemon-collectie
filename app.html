@@ -4366,7 +4366,15 @@ async function fetchCollectionPhotos(forceAll){
         results.forEach(r=>{
           const c = collection.find(x=>x.id === r.id);
           if(!c) return;
-          const isValid = typeof r.image === 'string' && /^https:\/\/images\.pokemontcg\.io\/[^/]+\/[^/.]+\.png$/.test(r.image);
+          // Accepteert zowel pokemontcg.io (EN) als TCGdex (JA) URL's -- eerder werd
+          // een geldige TCGdex-foto hier alsnog afgewezen (regex accepteerde alleen
+          // pokemontcg.io), waardoor Japanse kaarten in de collectie nooit een
+          // automatisch gevonden foto kregen, ook al leverde de TCGdex-fallback er
+          // hierboven wel eentje op.
+          const isValid = typeof r.image === 'string' && (
+            /^https:\/\/images\.pokemontcg\.io\/[^/]+\/[^/.]+\.png$/.test(r.image) ||
+            /^https:\/\/assets\.tcgdex\.net\/.+\.(webp|png|jpg)$/.test(r.image)
+          );
           if(forceAll){
             c.imgRef = r.imgRef || null; // always replace -- a stale wrong reference must not survive
             if(isValid){ if(c.photo !== r.image){ c.photo = r.image; found++; } }
