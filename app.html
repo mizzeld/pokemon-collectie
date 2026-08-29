@@ -1087,6 +1087,91 @@ main{padding:14px 12px 8px;}
 }
 .formrow.two{display:flex; gap:10px;}
 .formrow.two > div{flex:1;}
+.formrow select{
+  width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:8px; color:var(--text);
+  padding:9px 34px 9px 11px; font-size:14px; font-family:'Inter';
+  appearance:none; -webkit-appearance:none; -moz-appearance:none; cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238b93a1'><path d='M5.5 7.5l4.5 5 4.5-5z'/></svg>");
+  background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
+}
+.formrow select option{ background:var(--panel2); color:var(--text); }
+#jachtgidsMain .formrow select{
+  background-color:var(--jg-panel-2); border-color:var(--jg-line); color:var(--jg-ink);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239aa0ba'><path d='M5.5 7.5l4.5 5 4.5-5z'/></svg>");
+  background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
+}
+#jachtgidsMain .formrow select option{ background:var(--jg-panel-2); color:var(--jg-ink); }
+.jg-set-preview{ display:flex; align-items:center; gap:10px; margin:-4px 0 12px; min-height:1px; }
+.jg-set-preview img{ height:26px; width:auto; max-width:90px; object-fit:contain; }
+.jg-set-preview span{ font-size:11.5px; color:var(--jg-muted); }
+.pr-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; margin-top:6px; }
+.pr-card{
+  background:var(--jg-panel-2); border:1px solid var(--jg-line); border-radius:12px; padding:12px 10px;
+  display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; text-align:center;
+}
+.pr-card:hover, .pr-card:focus{ border-color:var(--jg-gold); }
+.pr-card img{ height:34px; max-width:100%; object-fit:contain; }
+.pr-card .pr-card-ph{ height:34px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--jg-muted); }
+.pr-card .pr-card-name{ font-size:11.5px; color:var(--jg-ink); line-height:1.25; }
+.pr-detail{ background:var(--jg-panel-2); border:1px solid var(--jg-line); border-radius:14px; padding:18px; margin-top:14px; }
+.pr-detail-head{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.pr-detail-head img{ height:38px; max-width:130px; object-fit:contain; }
+.pr-detail-head h4{ margin:0; font-family:Georgia, serif; font-size:17px; color:var(--jg-ink); }
+.pr-back{ background:none; border:none; color:var(--jg-holo-1); font-family:ui-monospace,monospace; font-size:11.5px; cursor:pointer; padding:0 0 12px; }
+.pr-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.pr-table th{ text-align:left; color:var(--jg-muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; padding:6px 8px; border-bottom:1px solid var(--jg-line); }
+.pr-table td{ padding:8px; border-bottom:1px solid var(--jg-line); color:var(--jg-ink); }
+.pr-table tr:last-child td{ border-bottom:none; }
+.pr-chase{ color:var(--jg-gold); font-size:10.5px; }
+.pr-note{ font-size:11px; color:var(--jg-muted); margin-top:10px; line-height:1.5; }
+
+/* --- Set-detail filters (Sets-bladzijde: zoeken/sorteren/filteren binnen een set) --- */
+.sdf-toprow{ display:flex; gap:8px; align-items:center; margin:0 0 12px; }
+.sdf-sortfield{
+  flex:1; background:var(--panel2); border:1px solid var(--line); border-radius:8px; color:var(--text);
+  padding:9px 30px 9px 11px; font-size:13px; font-family:'Inter'; appearance:none; -webkit-appearance:none; cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238b93a1'><path d='M5.5 7.5l4.5 5 4.5-5z'/></svg>");
+  background-repeat:no-repeat; background-position:right 9px center; background-size:15px;
+}
+.sdf-dirbtn{
+  flex:0 0 auto; width:38px; height:38px; border-radius:8px; background:var(--panel2); border:1px solid var(--line);
+  color:var(--accent-soft-text); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.sdf-filterbtn{
+  flex:0 0 auto; background:var(--panel2); border:1px solid var(--line); color:var(--muted); border-radius:8px;
+  padding:0 14px; height:38px; font-size:12.5px; cursor:pointer; white-space:nowrap;
+}
+.sdf-filterbtn.active{ color:var(--accent-soft-text); border-color:var(--accent-soft-border); }
+.sdf-panel{
+  background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin:0 0 14px; display:none;
+}
+.sdf-panel.show{ display:block; }
+.sdf-group{ margin-bottom:16px; }
+.sdf-group:last-child{ margin-bottom:0; }
+.sdf-group-title{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--green); margin-bottom:8px; font-weight:600; }
+.sdf-range-readout{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; font-family:'IBM Plex Mono'; }
+.sdf-range-wrap{ position:relative; height:26px; }
+.sdf-range-wrap input[type="range"]{
+  position:absolute; left:0; top:9px; width:100%; margin:0; height:6px; -webkit-appearance:none; background:transparent; pointer-events:none;
+}
+.sdf-range-wrap input[type="range"]::-webkit-slider-runnable-track{ height:6px; background:transparent; }
+.sdf-range-wrap input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; pointer-events:auto; width:18px; height:18px; border-radius:50%; background:var(--green);
+  border:2px solid var(--bg); cursor:grab; margin-top:-6px;
+}
+.sdf-range-wrap input[type="range"]::-moz-range-thumb{
+  pointer-events:auto; width:18px; height:18px; border-radius:50%; background:var(--green); border:2px solid var(--bg); cursor:grab;
+}
+.sdf-range-track{ position:absolute; left:0; right:0; top:9px; height:6px; border-radius:3px; background:var(--line); }
+.sdf-range-fill{ position:absolute; top:9px; height:6px; border-radius:3px; background:var(--green); }
+.sdf-check-list{ display:flex; flex-direction:column; gap:8px; }
+.sdf-check{ display:flex; align-items:center; gap:9px; font-size:13px; color:var(--text); cursor:pointer; }
+.sdf-check input{ width:16px; height:16px; accent-color:var(--green); cursor:pointer; }
+.sdf-clearbtn{
+  width:100%; background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:8px;
+  padding:10px; font-size:13px; cursor:pointer; margin-top:4px;
+}
+.sdf-empty-note{ font-size:12px; color:var(--muted); text-align:center; padding:24px 10px; }
 .confirmpreview{display:flex; gap:12px; margin-bottom:14px;}
 .confirmpreview img{width:80px; height:112px; object-fit:cover; border-radius:8px; border:1px solid var(--line);}
 .savebtn{
@@ -1438,6 +1523,21 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
 .shop-product.tier-unavailable{ opacity:.6; cursor:default; }
 .shop-product.tier-unavailable .shop-product-tier{ background:var(--panel2); color:var(--muted2); }
 .shop-product-note{ font-size:10.5px; color:var(--muted2); margin-top:6px; line-height:1.4; }
+
+/* Verzekeringsrapport: alleen zichtbaar tijdens het printen (of "opslaan als
+   PDF"), zodat we geen los venster hoeven te openen (kan geblokkeerd worden
+   door pop-up-blockers) -- we vullen deze container en roepen gewoon
+   window.print() aan, en verbergen de rest van de app via @media print. */
+#insuranceReport{ display:none; }
+#insuranceReport .ir-row{ display:flex; gap:10px; align-items:center; padding:6px 0; border-bottom:1px solid #ddd; }
+#insuranceReport .ir-row img{ width:34px; height:47px; object-fit:cover; border-radius:3px; }
+#insuranceReport .ir-ph{ width:34px; height:47px; border-radius:3px; background:#eee; }
+@media print{
+  body *{ visibility:hidden; }
+  #insuranceReport, #insuranceReport *{ visibility:visible; }
+  #insuranceReport{ display:block; position:absolute; left:0; top:0; width:100%; color:#111; background:#fff; padding:0; }
+  #insuranceReport .ir-row{ break-inside:avoid; }
+}
 </style>
 </head>
 <body>
@@ -1499,6 +1599,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       <input type="text" id="search" placeholder="Zoek in je collectie…">
       <button class="gobtn" id="exportBtn" title="Exporteer als CSV">⤓</button>
       <button class="gobtn" id="fixPhotosBtn" title="Foto's ophalen voor kaarten zonder foto">📷</button>
+      <button class="gobtn" id="soldLogBtn" title="Verkoopgeschiedenis">📜</button>
     </div>
     <div class="pages" id="pagepills"></div>
   </div>
@@ -2229,6 +2330,37 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     </div>
   </div>
 
+  <div class="jg-section" id="jgBoxCalc">
+    <div class="jg-section-head">
+      <p class="jg-eyebrow">Reken het na</p>
+      <h3 class="jg-h2">Is een doos de moeite waard?</h3>
+      <p>Vul in wat je koopt (los pack, bundel, ETB of hele box) en welke kaart je hoopt te pullen. Kies eerst de set, dan de rariteit — voor bijna 30 sets gebruiken we echte, bekende pull-rates (bron: thepricedex.com) i.p.v. een gok. Staat jouw set er niet bij, of wil je zelf rekenen? Vul dan gewoon zelf een kans en waarde in.</p>
+    </div>
+    <div class="jg-budget-panel">
+      <div class="formrow">
+        <label>Set (optioneel, kies de set die je koopt)</label>
+        <select id="boxCalcSetPicker">
+          <option value="">— Zelf invullen —</option>
+        </select>
+      </div>
+      <div class="jg-set-preview" id="boxCalcSetPreview"></div>
+      <div class="formrow" id="boxCalcTierRow" style="display:none;">
+        <label>Welke rariteit hoop je te pullen?</label>
+        <select id="boxCalcCardPicker">
+          <option value="">— Kies een rariteit —</option>
+        </select>
+      </div>
+      <div class="formrow"><label>Aantal packs in je aankoop</label><input type="number" id="boxCalcPacks" min="1" step="1" placeholder="bijv. 36 voor een hele box, 1 voor een los pack"></div>
+      <div class="formrow"><label>Totaalprijs van je aankoop (€)</label><input type="number" id="boxCalcPrice" min="0" step="1" placeholder="bijv. 145"></div>
+      <div class="formrow"><label>Waarde van de kaart die je hoopt te pullen (€)</label><input type="number" id="boxCalcCardValue" min="0" step="1" placeholder="bijv. 950"></div>
+      <div class="formrow"><label>Kans: 1 op hoeveel PACKS pul je 'm gemiddeld?</label><input type="number" id="boxCalcOdds" min="1" step="0.1" placeholder="bijv. 1540"></div>
+      <div id="boxCalcSourceNote" style="font-size:11px; color:var(--muted); margin:-4px 0 12px;"></div>
+      <button type="button" class="analyzebtn" id="boxCalcBtn" style="width:100%;">Bereken</button>
+      <div id="boxCalcResult" style="margin-top:14px;"></div>
+    </div>
+    <button type="button" class="analyzebtn" id="openPullRatesBtn" style="width:100%; margin-top:12px; background:transparent; border:1px solid var(--jg-gold-dim); color:var(--jg-gold);">📊 Bekijk alle pull rates per set</button>
+  </div>
+
   <div class="jg-section">
     <div class="jg-section-head">
       <p class="jg-eyebrow">Voor je koopt</p>
@@ -2580,6 +2712,14 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       </div>
 
       <div class="extrabox">
+        <div class="extrabox-title">Verzekeringsrapport</div>
+        <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 10px;">
+          Een nette, printbare pagina met al je kaarten, foto's en actuele waardes op een rijtje — handig om te bewaren of te gebruiken als je ooit een verzekering voor je collectie wilt afsluiten. Opent het print-scherm van je toestel; kies daar "Opslaan als PDF".
+        </p>
+        <button class="backupbtn" id="insuranceReportBtn" style="width:100%;">🖨️ Verzekeringsrapport exporteren</button>
+      </div>
+
+      <div class="extrabox">
         <div class="extrabox-title">Over deze app</div>
         <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0;">
           Binder draait volledig lokaal in je browser — je collectie staat alleen op dit apparaat, tenzij je zelf een backup deelt.
@@ -2593,6 +2733,51 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
   </div>
 </div>
 
+<!-- VERKOOPLOGBOEK -->
+<div class="overlay" id="soldLogOverlay">
+  <div class="sheet addsheet">
+    <div class="grabber"></div>
+    <div class="body">
+      <h2 style="font-size:16px;margin:4px 0 10px;">📜 Verkoopgeschiedenis</h2>
+      <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 12px;">
+        Kaarten die je vanuit je collectie als verkocht hebt gemarkeerd, met de gerealiseerde winst/verlies t.o.v. wat je er destijds voor betaalde.
+      </p>
+      <div id="soldLogBody"></div>
+    </div>
+    <div class="closebar"><button class="closebtn" id="closeSoldLog">Sluiten</button></div>
+  </div>
+</div>
+
+<!-- VERZAMELTIJDLIJN -->
+<div class="overlay" id="timelineOverlay">
+  <div class="sheet addsheet">
+    <div class="grabber"></div>
+    <div class="body">
+      <h2 style="font-size:16px;margin:4px 0 10px;">📅 Verzameltijdlijn</h2>
+      <div id="timelineBody"></div>
+    </div>
+    <div class="closebar"><button class="closebtn" id="closeTimeline">Sluiten</button></div>
+  </div>
+</div>
+
+<!-- PULL RATES OVERZICHT -->
+<div class="overlay" id="pullRatesOverlay">
+  <div class="sheet addsheet">
+    <div class="grabber"></div>
+    <div class="body">
+      <h2 style="font-size:16px;margin:4px 0 10px;">📊 Pull rates per set</h2>
+      <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 12px;">
+        Echte, gebronde pull-rates (thepricedex.com, bijgewerkt <span id="pullRatesSourceDate"></span>) voor bijna 30 sets die je nu nog vers als losse packs, ETB of hele box kunt kopen. Tik op een set voor de volledige rariteitentabel.
+      </p>
+      <div id="pullRatesBody"></div>
+    </div>
+    <div class="closebar"><button class="closebtn" id="closePullRates">Sluiten</button></div>
+  </div>
+</div>
+
+<!-- VERZEKERINGSRAPPORT (alleen zichtbaar tijdens printen, zie @media print) -->
+<div id="insuranceReport"></div>
+
 <!-- SET DETAIL PAGE -->
 <div class="overlay" id="setDetailOverlay">
   <div class="sheet addsheet">
@@ -2600,13 +2785,19 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <div class="grabber"></div>
     <div class="body">
       <div id="setDetailHead" style="margin-bottom:10px;"></div>
-      <div class="pages" id="setDetailSortRow" style="margin:0 0 12px;">
-        <button class="pagepill active" id="setDetailSortDesc">Duurste eerst</button>
-        <button class="pagepill" id="setDetailSortAsc">Goedkoopste eerst</button>
+      <div class="sdf-toprow">
+        <select class="sdf-sortfield" id="setDetailSortField">
+          <option value="raw">Sorteer op prijs</option>
+          <option value="number">Sorteer op nummer</option>
+        </select>
+        <button type="button" class="sdf-dirbtn" id="setDetailSortDirBtn" title="Volgorde omdraaien">↓</button>
+        <button type="button" class="sdf-filterbtn" id="setDetailFilterToggle">🔧 Filters</button>
       </div>
+      <div class="sdf-panel" id="setDetailFilterPanel"></div>
       <div class="bulklink" id="useSetForSearch" style="margin:0 0 12px;">🔍 Deze set gebruiken</div>
       <div class="loadingrow" id="setDetailLoading"><div class="spinner"></div><p>Kaarten laden…</p></div>
       <div id="setDetailNote" style="font-size:11.5px; color:var(--muted2); margin-bottom:10px; display:none;"></div>
+      <div id="setDetailFilterEmpty" class="sdf-empty-note" style="display:none;">Geen kaarten voldoen aan de gekozen filters.</div>
       <div class="grid" id="setDetailGrid" style="display:none;"></div>
     </div>
     <div class="closebar"><button class="closebtn" id="closeSetDetail">Sluiten</button></div>
@@ -4234,6 +4425,7 @@ async function downloadBackup(){
     exportedAt: new Date().toISOString(),
     collection: collectionForStorage(), // seed photos rehydrate automatically on load, no need to bloat the backup
     wishlist,
+    soldLog,
     portfolioHistory,
     setTotals,
     currency
@@ -4286,8 +4478,10 @@ document.getElementById('restoreFileInput').onchange = async (e)=>{
       }
     });
     wishlist = Array.isArray(data.wishlist) ? data.wishlist : [];
+    soldLog = Array.isArray(data.soldLog) ? data.soldLog : [];
     await saveCollection();
     await saveWishlist();
+    await saveSoldLog();
     if(Array.isArray(data.portfolioHistory)){
       await storageAPI.set('portfolioHistory', JSON.stringify(data.portfolioHistory), false);
     }
@@ -4564,6 +4758,13 @@ function openDetail(id){
       <label class="tradetoggle"><input type="checkbox" id="tradeToggle" ${c.forTrade?'checked':''}> Markeer voor ruil</label>
     </div>`;
 
+  const removeHTML = `
+    <div class="extrabox">
+      <div class="extrabox-title">Kaart kwijt uit je collectie?</div>
+      <button class="addphotobtn" id="markSoldBtn" style="width:100%;">💸 Verkocht — noteer in logboek</button>
+      <button class="addphotobtn" id="removeCardBtn" style="width:100%; margin-top:6px; color:var(--red);">🗑️ Gewoon verwijderen (niet verkocht)</button>
+    </div>`;
+
   const submissionHTML = (!c.isGraded) ? buildSubmissionBox(c) : '';
 
   document.getElementById('detailSheet').innerHTML = `
@@ -4604,6 +4805,7 @@ function openDetail(id){
     ${profitHTML}
     ${qtyHTML}
     ${submissionHTML}
+    ${removeHTML}
     <div class="ladder-wrap" style="padding-top:0;">
       <div class="ladder-title">Live prijzen bekijken</div>
       <div style="display:flex; gap:8px;">
@@ -4643,6 +4845,35 @@ function openDetail(id){
     if(v === null) return;
     const num = parseFloat(v);
     if(!isNaN(num) && num >= 0){ c.paid = num; await saveCollection(); openDetail(id); }
+  };
+
+  const markSoldBtn = document.getElementById('markSoldBtn');
+  if(markSoldBtn) markSoldBtn.onclick = async ()=>{
+    const v = prompt(`Voor hoeveel heb je "${c.name}" verkocht? ($, laat leeg als je het niet meer weet)`, c.raw || '');
+    if(v === null) return; // geannuleerd
+    const num = parseFloat(v);
+    const soldPrice = (v.trim() !== '' && !isNaN(num) && num >= 0) ? num : null;
+    const qty = c.qty || 1;
+    const ok = confirm(qty > 1
+      ? `1 van je ${qty} exemplaren van "${c.name}" markeren als verkocht? De andere ${qty-1} blijven gewoon in je collectie.`
+      : `"${c.name}" markeren als verkocht en uit je collectie halen? Dit kan niet ongedaan gemaakt worden, maar je kunt 'm terugvinden in de verkoopgeschiedenis.`);
+    if(!ok) return;
+    await logCardAsSold(c, soldPrice);
+    closeDetail();
+    if(currentView === 'collection') renderGrid();
+  };
+
+  const removeCardBtn = document.getElementById('removeCardBtn');
+  if(removeCardBtn) removeCardBtn.onclick = async ()=>{
+    const qty = c.qty || 1;
+    const ok = confirm(qty > 1
+      ? `1 van je ${qty} exemplaren van "${c.name}" verwijderen (niet als verkocht loggen)?`
+      : `"${c.name}" definitief uit je collectie verwijderen (niet als verkocht loggen)? Dit kan niet ongedaan gemaakt worden.`);
+    if(!ok) return;
+    if(qty > 1){ c.qty = qty - 1; } else { collection = collection.filter(x => x.id !== c.id); }
+    await saveCollection();
+    closeDetail();
+    if(currentView === 'collection') renderGrid();
   };
   const condPill = document.getElementById('condPill');
   if(condPill) condPill.onclick = async ()=>{
@@ -5919,11 +6150,17 @@ async function renderHomeDashboard(){
     </div>
 
     <div class="funfact"><b>Wist je dat?</b>${fact}</div>
+    <button type="button" class="addphotobtn" id="openTimelineBtn" style="display:block; width:100%; text-align:center; font-size:13px; padding:9px; margin-top:10px;">📅 Bekijk je verzameltijdlijn</button>
     <hr class="dash-divider">
   `;
   document.getElementById('dotdCard').onclick = ()=>{
     switchView('collection');
     setTimeout(()=> openDetail(cod.id), 50);
+  };
+  const timelineBtn = document.getElementById('openTimelineBtn');
+  if(timelineBtn) timelineBtn.onclick = ()=>{
+    renderTimeline();
+    document.getElementById('timelineOverlay').classList.add('show');
   };
   const dismissBtn = document.getElementById('dismissAlert');
   if(dismissBtn){
@@ -7368,6 +7605,25 @@ function recordCatalogSnapshotsBatch(setId, cards){
 let setDetailSet = null;
 let setDetailCards = null; // cached normalized cards for the currently open set
 let setDetailSortDir = 'desc';
+let setDetailSortField = 'raw'; // 'raw' (prijs) of 'number'
+// Filters voor de setdetailpagina -- Sets van Strings, leeg = "geen filter op
+// dit veld". priceMin/priceMax blijven null totdat de gebruiker de slider
+// aanraakt, zodat we nooit een grens tonen/toepassen die we zelf verzonnen.
+let setDetailFilters = { rarity: new Set(), variant: new Set(), type: new Set(), supertype: new Set(), subtype: new Set(), priceMin: null, priceMax: null };
+
+// Leidt uit pokemontcg.io's eigen tcgplayer.prices-sleutels af welke
+// fysieke varianten (Holo/Reverse Holo/Normal) van een kaart echt bestaan --
+// nooit gegokt, alleen wat de API zelf aanbiedt.
+function extractCardVariants(card){
+  const keys = Object.keys((card.tcgplayer && card.tcgplayer.prices) || {});
+  const out = new Set();
+  keys.forEach(k => {
+    if(k === 'normal') out.add('Normal');
+    else if(k === 'reverseHolofoil') out.add('Reverse Holo');
+    else if(/holofoil/i.test(k)) out.add('Holo');
+  });
+  return out.size ? Array.from(out) : null;
+}
 
 // Full card list for one set -- tries pokemontcg.io first (has real
 // tcgplayer/cardmarket prices via apiPrices()), falls back to TCGdex if that
@@ -7417,7 +7673,10 @@ async function fetchCardsForSet(set){
         name: card.name, number: card.number,
         image: card.images ? (card.images.large || card.images.small) : null,
         raw: raw || null, psa10: null, rarity: card.rarity || null,
-        types: Array.isArray(card.types) ? card.types : null
+        types: Array.isArray(card.types) ? card.types : null,
+        supertype: card.supertype || null,
+        subtypes: Array.isArray(card.subtypes) ? card.subtypes : null,
+        variants: extractCardVariants(card)
       };
     });
   }catch(primaryErr){
@@ -7431,10 +7690,25 @@ async function fetchCardsForSet(set){
     // gewoon een ID-mismatch was. Zoek daarom eerst de juiste TCGdex-set-ID op
     // via de setnaam, en val alleen op set.id terug als die opzoeking zelf faalt.
     let tdSetId = set.id;
+    // De "like:"-substring-filter op TCGdex's /sets-endpoint bleek soms 0
+    // resultaten te geven voor een naam die wel degelijk (exact) in TCGdex's
+    // eigen setlijst voorkomt (aug. 2026, ontdekt doordat "alle" sets opeens
+    // leeg leken zodra pokemontcg.io zelf faalde) -- daarom nu de VOLLEDIGE
+    // lijst ophalen en zelf op naam matchen (net als ensurePullRateSetLogos()
+    // hierboven al doet), betrouwbaarder dan op de servers eigen fuzzy-filter
+    // vertrouwen. Geen match => nette terugval op set.id, nooit een gok.
     try{
-      const tdSetMatches = await tcgdexQuery('/sets', { name: 'like:' + set.name });
-      const tdSetMatch = Array.isArray(tdSetMatches)
-        ? (tdSetMatches.find(s => s.name === set.name) || tdSetMatches[0])
+      // BUG (gevonden aug. 2026, tweede ronde): zonder expliciete sortering
+      // gaf deze /sets-ophaling een willekeurige/ongesorteerde eerste 250 van
+      // TCGdex' totale setlijst (die groter is dan 250) terug -- de nieuwste
+      // sets (zoals deze "Mega Evolution"-reeks, o.a. "Pitch Black") vielen
+      // daardoor soms gewoon BUITEN die 250, ook al bestaan ze wel degelijk
+      // in TCGdex. Zelfde releaseDate-DESC-sortering als tcgdexFetchSets()
+      // hierboven voorkomt dat: nieuwste sets staan dan altijd vooraan.
+      const allTdSets = await tcgdexQuery('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
+      const norm = s => String(s||'').trim().toLowerCase();
+      const tdSetMatch = Array.isArray(allTdSets)
+        ? (allTdSets.find(s => norm(s.name) === norm(set.name)) || null)
         : null;
       if(tdSetMatch && tdSetMatch.id) tdSetId = tdSetMatch.id;
     }catch(e){
@@ -7444,7 +7718,8 @@ async function fetchCardsForSet(set){
     cards = (Array.isArray(tdCards) ? tdCards : []).map(card => ({
       name: card.name, number: card.localId,
       image: card.image ? card.image + '/high.webp' : null,
-      raw: null, psa10: null, rarity: null, types: null
+      raw: null, psa10: null, rarity: null, types: null,
+      supertype: null, subtypes: null, variants: null
     }));
   }
 
@@ -7484,7 +7759,8 @@ async function fetchCardsForSetJa(set){
   cards = (Array.isArray(list) ? list : []).map(card => ({
     name: card.name, number: card.localId,
     image: card.image ? card.image + '/high.webp' : null,
-    raw: null, psa10: null, rarity: null, types: null
+    raw: null, psa10: null, rarity: null, types: null,
+    supertype: null, subtypes: null, variants: null
   }));
   const result = { cards, hasPrices: false };
   try{
@@ -8211,11 +8487,127 @@ function finishPackReveal(){
 
 let setDetailSortedCards = [];
 
+// Alleen echt aanwezige waarden in DEZE set worden als filteropties getoond
+// (nooit een vaste/gegokte lijst) -- een set zonder Reverse Holo-kaarten
+// laat dat vinkje dus gewoon weg i.p.v. een lege/nutteloze optie te tonen.
+function uniqueSortedVals(arr){ return Array.from(new Set(arr.filter(Boolean))).sort((a,b)=>a.localeCompare(b)); }
+
+let setDetailPriceBounds = { min: 0, max: 0 };
+
+function setDetailFilteredCards(){
+  if(!setDetailCards) return [];
+  const f = setDetailFilters;
+  return setDetailCards.cards.filter(c => {
+    if(f.rarity.size && !(c.rarity && f.rarity.has(c.rarity))) return false;
+    if(f.variant.size && !(c.variants && c.variants.some(v => f.variant.has(v)))) return false;
+    if(f.type.size && !(c.types && c.types.some(t => f.type.has(t)))) return false;
+    if(f.supertype.size && !(c.supertype && f.supertype.has(c.supertype))) return false;
+    if(f.subtype.size && !(c.subtypes && c.subtypes.some(s => f.subtype.has(s)))) return false;
+    if(f.priceMin != null && !(c.raw != null && c.raw >= f.priceMin)) return false;
+    if(f.priceMax != null && !(c.raw != null && c.raw <= f.priceMax)) return false;
+    return true;
+  });
+}
+
+function renderSetDetailFilterPanel(){
+  const panel = document.getElementById('setDetailFilterPanel');
+  if(!panel) return;
+  if(!setDetailCards){ panel.innerHTML = ''; return; }
+  const cards = setDetailCards.cards;
+  const rarities = uniqueSortedVals(cards.map(c => c.rarity));
+  const variants = uniqueSortedVals(cards.flatMap(c => c.variants || []));
+  const types = uniqueSortedVals(cards.flatMap(c => c.types || []));
+  const supertypes = uniqueSortedVals(cards.map(c => c.supertype));
+  const subtypes = uniqueSortedVals(cards.flatMap(c => c.subtypes || []));
+  const prices = cards.map(c => c.raw).filter(v => v != null);
+  const priceMinBound = prices.length ? Math.floor(Math.min(...prices) * 100) / 100 : 0;
+  const priceMaxBound = prices.length ? Math.ceil(Math.max(...prices) * 100) / 100 : 0;
+  setDetailPriceBounds = { min: priceMinBound, max: priceMaxBound };
+  const curMin = setDetailFilters.priceMin != null ? setDetailFilters.priceMin : priceMinBound;
+  const curMax = setDetailFilters.priceMax != null ? setDetailFilters.priceMax : priceMaxBound;
+
+  const checkGroup = (title, key, options) => {
+    if(!options.length) return '';
+    return `<div class="sdf-group">
+      <div class="sdf-group-title">${escapeHtml(title)}</div>
+      <div class="sdf-check-list">
+        ${options.map(o => `<label class="sdf-check"><input type="checkbox" data-filtergroup="${escapeHtml(key)}" value="${escapeHtml(o)}" ${setDetailFilters[key].has(o) ? 'checked' : ''}> ${escapeHtml(o)}</label>`).join('')}
+      </div>
+    </div>`;
+  };
+
+  const priceGroup = (prices.length && priceMaxBound > priceMinBound) ? `
+    <div class="sdf-group">
+      <div class="sdf-group-title">Prijsbereik</div>
+      <div class="sdf-range-readout"><span id="sdfPriceMinLabel">${fmt(curMin)}</span><span id="sdfPriceMaxLabel">${fmt(curMax)}</span></div>
+      <div class="sdf-range-wrap">
+        <div class="sdf-range-track"></div>
+        <div class="sdf-range-fill" id="sdfRangeFill"></div>
+        <input type="range" id="sdfPriceMin" min="${priceMinBound}" max="${priceMaxBound}" step="0.01" value="${curMin}">
+        <input type="range" id="sdfPriceMax" min="${priceMinBound}" max="${priceMaxBound}" step="0.01" value="${curMax}">
+      </div>
+    </div>` : '';
+
+  panel.innerHTML = priceGroup
+    + checkGroup('Rariteit', 'rarity', rarities)
+    + checkGroup('Variant', 'variant', variants)
+    + checkGroup('Type', 'type', types)
+    + checkGroup('Supertype', 'supertype', supertypes)
+    + checkGroup('Subtype', 'subtype', subtypes)
+    + `<button type="button" class="sdf-clearbtn" id="sdfClearBtn">Wis alle filters</button>`;
+
+  panel.querySelectorAll('input[type="checkbox"][data-filtergroup]').forEach(cb => {
+    cb.onchange = () => {
+      const key = cb.dataset.filtergroup;
+      if(cb.checked) setDetailFilters[key].add(cb.value);
+      else setDetailFilters[key].delete(cb.value);
+      renderSetDetailGrid();
+    };
+  });
+
+  const minSlider = document.getElementById('sdfPriceMin');
+  const maxSlider = document.getElementById('sdfPriceMax');
+  if(minSlider && maxSlider){
+    const fillEl = document.getElementById('sdfRangeFill');
+    const updateFill = () => {
+      const lo = parseFloat(minSlider.value), hi = parseFloat(maxSlider.value);
+      const pct = v => priceMaxBound > priceMinBound ? ((v - priceMinBound) / (priceMaxBound - priceMinBound)) * 100 : 0;
+      fillEl.style.left = pct(lo) + '%';
+      fillEl.style.width = Math.max(0, pct(hi) - pct(lo)) + '%';
+    };
+    updateFill();
+    minSlider.oninput = () => {
+      if(parseFloat(minSlider.value) > parseFloat(maxSlider.value)) minSlider.value = maxSlider.value;
+      setDetailFilters.priceMin = parseFloat(minSlider.value);
+      document.getElementById('sdfPriceMinLabel').textContent = fmt(setDetailFilters.priceMin);
+      updateFill();
+      renderSetDetailGrid();
+    };
+    maxSlider.oninput = () => {
+      if(parseFloat(maxSlider.value) < parseFloat(minSlider.value)) maxSlider.value = minSlider.value;
+      setDetailFilters.priceMax = parseFloat(maxSlider.value);
+      document.getElementById('sdfPriceMaxLabel').textContent = fmt(setDetailFilters.priceMax);
+      updateFill();
+      renderSetDetailGrid();
+    };
+  }
+
+  const clearBtn = document.getElementById('sdfClearBtn');
+  if(clearBtn){
+    clearBtn.onclick = () => {
+      setDetailFilters = { rarity: new Set(), variant: new Set(), type: new Set(), supertype: new Set(), subtype: new Set(), priceMin: null, priceMax: null };
+      renderSetDetailFilterPanel();
+      renderSetDetailGrid();
+    };
+  }
+}
+
 function renderSetDetailGrid(){
   const grid = document.getElementById('setDetailGrid');
   const note = document.getElementById('setDetailNote');
+  const emptyNote = document.getElementById('setDetailFilterEmpty');
   if(!setDetailCards) return;
-  const { cards, hasPrices } = setDetailCards;
+  const { hasPrices } = setDetailCards;
 
   // "161/131"-notatie: teller is het kaartnummer zelf, noemer is de officiële
   // printedTotal van de set (pokemontcg.io) -- bij ontbreken laten we de
@@ -8223,19 +8615,46 @@ function renderSetDetailGrid(){
   const setTotal = setDetailSet ? (setDetailSet.printedTotal || setDetailSet.total || null) : null;
   const numberLine = c => `#${escapeHtml(c.number)}${setTotal ? '/' + escapeHtml(setTotal) : ''}${c.rarity ? ' · ' + escapeHtml(c.rarity) : ''}`;
 
-  if(hasPrices){
-    note.style.display = 'none';
-    setDetailSortedCards = [...cards].sort((a,b)=>{
-      // Kaarten zonder bekende prijs horen ALTIJD onderaan te staan, in beide
-      // sorteerrichtingen -- anders lijken ze bij "Goedkoopste eerst" per
-      // ongeluk de goedkoopste kaarten van de set (voorheen telden ze mee
-      // als -1, wat ze bovenaan zette bij oplopend sorteren).
-      if(a.raw == null && b.raw == null) return 0;
-      if(a.raw == null) return 1;
-      if(b.raw == null) return -1;
-      return setDetailSortDir === 'desc' ? b.raw - a.raw : a.raw - b.raw;
-    });
-    grid.innerHTML = setDetailSortedCards.map((c,i) => `
+  // Zonder prijzen (terugval-bron) is er niks om op te sorteren/filteren op
+  // prijs -- forceer dan gewoon kaartnummer-volgorde, net als voorheen.
+  const effectiveField = hasPrices ? setDetailSortField : 'number';
+  const filtered = setDetailFilteredCards();
+  setDetailSortedCards = [...filtered].sort((a,b) => {
+    if(effectiveField === 'number'){
+      const cmp = String(a.number).localeCompare(String(b.number), undefined, {numeric:true});
+      return setDetailSortDir === 'desc' ? -cmp : cmp;
+    }
+    // Kaarten zonder bekende prijs horen ALTIJD onderaan te staan, in beide
+    // sorteerrichtingen -- anders lijken ze bij "hoog naar laag" per ongeluk
+    // de duurste kaarten van de set.
+    if(a.raw == null && b.raw == null) return 0;
+    if(a.raw == null) return 1;
+    if(b.raw == null) return -1;
+    return setDetailSortDir === 'desc' ? b.raw - a.raw : a.raw - b.raw;
+  });
+
+  note.style.display = hasPrices ? 'none' : '';
+  if(!hasPrices){
+    note.textContent = (setDetailSet && setDetailSet.lang === 'ja')
+      ? 'Japanse kaarten hebben geen marktprijs beschikbaar -- kaarten staan op volgorde van kaartnummer.'
+      : 'Prijzen zijn nu niet beschikbaar (terugval-bron zonder prijsdata) -- kaarten staan op volgorde van kaartnummer.';
+  }
+
+  if(!setDetailSortedCards.length){
+    grid.style.display = 'none';
+    grid.innerHTML = '';
+    // Onderscheid tonen tussen "je filters laten niks over" en "voor deze
+    // set hebben we gewoon nog geen kaartgegevens" -- anders lijkt het net
+    // alsof je eigen filterkeuze de oorzaak is, terwijl er (bij een gloednieuwe
+    // set die nog nergens volledig staat) simpelweg niks was om te tonen.
+    emptyNote.textContent = setDetailCards.cards.length === 0
+      ? 'Voor deze set zijn nog geen kaartgegevens beschikbaar (waarschijnlijk een net aangekondigde/nieuwe set).'
+      : 'Geen kaarten voldoen aan de gekozen filters.';
+    emptyNote.style.display = '';
+  } else {
+    emptyNote.style.display = 'none';
+    grid.style.display = '';
+    grid.innerHTML = setDetailSortedCards.map((c,i) => hasPrices ? `
       <div class="slot" data-idx="${i}">
         <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div>`}</div>
         <div class="foot">
@@ -8246,14 +8665,7 @@ function renderSetDetailGrid(){
             ${setDetailSet ? catalogCardPctBadgeHTML(setDetailSet.id, c.number) : ''}
           </div>
         </div>
-      </div>`).join('');
-  } else {
-    note.textContent = (setDetailSet && setDetailSet.lang === 'ja')
-      ? 'Japanse kaarten hebben geen marktprijs beschikbaar -- kaarten staan op volgorde van kaartnummer.'
-      : 'Prijzen zijn nu niet beschikbaar (terugval-bron zonder prijsdata) -- kaarten staan op volgorde van kaartnummer.';
-    note.style.display = '';
-    setDetailSortedCards = [...cards].sort((a,b)=> String(a.number).localeCompare(String(b.number), undefined, {numeric:true}));
-    grid.innerHTML = setDetailSortedCards.map((c,i) => `
+      </div>` : `
       <div class="slot" data-idx="${i}">
         <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div>`}</div>
         <div class="foot">
@@ -8480,9 +8892,16 @@ async function checkLiveCatalogPrice(c){
 async function openSetDetail(set){
   setDetailSet = set;
   setDetailCards = null;
+  // Filters horen bij DEZE set (andere sets hebben andere rariteiten/types
+  // beschikbaar) -- bij het openen van een (nieuwe) set altijd resetten,
+  // sorteerkeuze mag wel blijven staan (dat is een persoonlijke voorkeur).
+  setDetailFilters = { rarity: new Set(), variant: new Set(), type: new Set(), supertype: new Set(), subtype: new Set(), priceMin: null, priceMax: null };
+  document.getElementById('setDetailFilterPanel').classList.remove('show');
+  document.getElementById('setDetailFilterToggle').classList.remove('active');
   const loading = document.getElementById('setDetailLoading');
   const grid = document.getElementById('setDetailGrid');
   const note = document.getElementById('setDetailNote');
+  const emptyNote = document.getElementById('setDetailFilterEmpty');
   document.getElementById('setDetailHead').innerHTML = `
     <div style="display:flex; align-items:center; gap:10px;">
       ${set.images && set.images.logo ? logoImgHTML(set.images.logo, '', 'style="height:28px; width:auto; max-width:90px; object-fit:contain;"') : ''}
@@ -8497,6 +8916,7 @@ async function openSetDetail(set){
   loading.style.display = '';
   grid.style.display = 'none';
   note.style.display = 'none';
+  emptyNote.style.display = 'none';
   document.getElementById('setDetailOverlay').classList.add('show');
   try{
     const cards = set.lang === 'ja' ? await fetchCardsForSetJa(set) : await fetchCardsForSet(set);
@@ -8507,6 +8927,7 @@ async function openSetDetail(set){
     // kaarten van set A (stille datamismatch, geen crash).
     if(setDetailSet !== set) return;
     setDetailCards = cards;
+    renderSetDetailFilterPanel();
     renderSetDetailGrid();
     loading.style.display = 'none';
     grid.style.display = '';
@@ -8516,17 +8937,25 @@ async function openSetDetail(set){
   }
 }
 
-document.getElementById('setDetailSortDesc').onclick = ()=>{
-  setDetailSortDir = 'desc';
-  document.getElementById('setDetailSortDesc').classList.add('active');
-  document.getElementById('setDetailSortAsc').classList.remove('active');
+document.getElementById('setDetailSortField').value = setDetailSortField;
+document.getElementById('setDetailSortField').onchange = (e)=>{
+  setDetailSortField = e.target.value;
   renderSetDetailGrid();
 };
-document.getElementById('setDetailSortAsc').onclick = ()=>{
-  setDetailSortDir = 'asc';
-  document.getElementById('setDetailSortAsc').classList.add('active');
-  document.getElementById('setDetailSortDesc').classList.remove('active');
+function updateSetDetailSortDirBtn(){
+  document.getElementById('setDetailSortDirBtn').textContent = setDetailSortDir === 'desc' ? '↓' : '↑';
+}
+updateSetDetailSortDirBtn();
+document.getElementById('setDetailSortDirBtn').onclick = ()=>{
+  setDetailSortDir = setDetailSortDir === 'desc' ? 'asc' : 'desc';
+  updateSetDetailSortDirBtn();
   renderSetDetailGrid();
+};
+document.getElementById('setDetailFilterToggle').onclick = ()=>{
+  const panel = document.getElementById('setDetailFilterPanel');
+  const btn = document.getElementById('setDetailFilterToggle');
+  panel.classList.toggle('show');
+  btn.classList.toggle('active', panel.classList.contains('show'));
 };
 document.getElementById('closeSetDetail').onclick = ()=> document.getElementById('setDetailOverlay').classList.remove('show');
 document.getElementById('closeSetDetailX').onclick = ()=> document.getElementById('setDetailOverlay').classList.remove('show');
@@ -8795,6 +9224,147 @@ async function saveWishlist(){
   try{ await storageAPI.set('wishlist', JSON.stringify(wishlist), false); }
   catch(e){ console.warn('verlanglijst opslaan mislukt', e); }
 }
+
+/* ============================= VERKOOPLOGBOEK =============================
+   Bijhoudt wat je daadwerkelijk hebt verkocht (naam, foto, betaald bedrag
+   destijds, verkoopprijs, gerealiseerde winst/verlies) -- los van de
+   "winst/verlies t.o.v. huidige marktprijs" die al in de kaartdetails staat
+   voor kaarten die je nog HEBT. Dit logboek is voor wat je niet meer hebt. */
+let soldLog = [];
+
+async function loadSoldLog(){
+  try{
+    const res = await storageAPI.get('soldLog');
+    soldLog = (res && res.value) ? JSON.parse(res.value) : [];
+  }catch(e){ soldLog = []; }
+}
+async function saveSoldLog(){
+  try{ await storageAPI.set('soldLog', JSON.stringify(soldLog), false); }
+  catch(e){ console.warn('verkooplogboek opslaan mislukt', e); }
+}
+
+// Haalt één exemplaar van kaart `c` uit de collectie (bij qty>1 alleen de
+// telling omlaag, bij qty 1 de hele kaart weg) en logt 'm in soldLog.
+// soldPrice mag null zijn (dan tellen we 'm niet mee in de winst-optelling,
+// voor het geval iemand een kaart gewoon kwijtraakt/weggeeft i.p.v. verkoopt).
+async function logCardAsSold(c, soldPrice){
+  const profit = (soldPrice != null && c.paid != null) ? (soldPrice - c.paid) : null;
+  soldLog.unshift({
+    id: 'sold-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    name: c.name, set: c.set, photo: c.photo || null,
+    paid: c.paid ?? null, soldPrice: soldPrice, profit,
+    soldDate: new Date().toISOString().slice(0,10)
+  });
+  await saveSoldLog();
+
+  const qty = c.qty || 1;
+  if(qty > 1){ c.qty = qty - 1; }
+  else{ collection = collection.filter(x => x.id !== c.id); }
+  await saveCollection();
+}
+
+function renderSoldLog(){
+  const body = document.getElementById('soldLogBody');
+  if(!body) return;
+  if(!soldLog.length){
+    body.innerHTML = `<div class="empty">Nog geen kaarten als verkocht gemarkeerd. Dat doe je vanuit de kaartdetails in je collectie ("Verwijderen / verkocht").</div>`;
+    return;
+  }
+  const withProfit = soldLog.filter(s => s.profit != null);
+  const totalProfit = withProfit.reduce((s,x)=>s+x.profit, 0);
+  const totalSold = soldLog.filter(s=>s.soldPrice!=null).reduce((s,x)=>s+x.soldPrice, 0);
+  const summaryHTML = `
+    <div class="extrabox" style="margin-bottom:14px;">
+      <div class="extrabox-title">Totaal gerealiseerd</div>
+      <div style="display:flex; justify-content:space-between; align-items:baseline; font-family:'IBM Plex Mono';">
+        <span style="font-size:12px; color:var(--muted);">${soldLog.length} kaart${soldLog.length===1?'':'en'} verkocht · ${fmt(totalSold)} totaal ontvangen</span>
+        ${withProfit.length ? `<span style="font-size:15px; font-weight:600; color:${totalProfit>=0?'var(--green)':'var(--red)'}">${totalProfit>=0?'+':''}${fmt(totalProfit)}</span>` : ''}
+      </div>
+    </div>`;
+  const rowsHTML = soldLog.map(s => {
+    const art = s.photo
+      ? `<img src="${escapeHtml(s.photo)}" style="width:36px;height:50px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'">`
+      : `<div style="width:36px;height:50px;border-radius:4px;background:var(--panel2);"></div>`;
+    const profitHTML = s.profit != null
+      ? `<span class="mono" style="font-size:12px; color:${s.profit>=0?'var(--green)':'var(--red)'}">${s.profit>=0?'+':''}${fmt(s.profit)}</span>`
+      : '';
+    return `
+      <div style="display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);">
+        ${art}
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:12.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(s.name)}</div>
+          <div style="font-size:11px; color:var(--muted);">${escapeHtml(s.set||'')} · verkocht ${escapeHtml(s.soldDate)}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="mono" style="font-size:12.5px;">${s.soldPrice!=null?fmt(s.soldPrice):'—'}</div>
+          ${profitHTML}
+        </div>
+      </div>`;
+  }).join('');
+  body.innerHTML = summaryHTML + rowsHTML;
+}
+
+// Verzameltijdlijn: groepeert de collectie per maand van toevoegen. addedISO
+// wordt pas sinds een latere update bijgehouden -- kaarten uit de
+// oorspronkelijke seed-collectie hebben 'm niet, en we WETEN dus niet
+// wanneer die daadwerkelijk zijn toegevoegd. Die belanden bewust in één
+// aparte "oorspronkelijke collectie"-groep i.p.v. een verzonnen datum.
+function renderTimeline(){
+  const body = document.getElementById('timelineBody');
+  if(!body) return;
+  if(!collection.length){
+    body.innerHTML = `<div class="empty">Je collectie is nog leeg.</div>`;
+    return;
+  }
+  const dated = collection.filter(c => c.addedISO).slice().sort((a,b)=> b.addedISO.localeCompare(a.addedISO));
+  const undated = collection.filter(c => !c.addedISO);
+
+  const monthNames = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+  const groups = [];
+  let curKey = null, curGroup = null;
+  dated.forEach(c=>{
+    const key = c.addedISO.slice(0,7); // YYYY-MM
+    if(key !== curKey){
+      curKey = key;
+      const [y,m] = key.split('-').map(Number);
+      curGroup = { label: `${monthNames[m-1]} ${y}`, cards: [] };
+      groups.push(curGroup);
+    }
+    curGroup.cards.push(c);
+  });
+
+  const rowHTML = (c) => {
+    const art = c.photo
+      ? `<img src="${escapeHtml(c.photo)}" style="width:32px;height:44px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'">`
+      : `<div style="width:32px;height:44px;border-radius:4px;background:var(--panel2);"></div>`;
+    return `
+      <div style="display:flex; gap:10px; align-items:center; padding:6px 0;">
+        ${art}
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:12.5px; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(c.name)}</div>
+          <div style="font-size:11px; color:var(--muted);">${escapeHtml(c.set||'')}</div>
+        </div>
+        <div class="mono" style="font-size:12px;">${fmt(c.raw)}</div>
+      </div>`;
+  };
+
+  const groupsHTML = groups.map(g => `
+    <div class="extrabox" style="margin:0 0 12px;">
+      <div class="extrabox-title">${escapeHtml(g.label)} · ${g.cards.length} kaart${g.cards.length===1?'':'en'}</div>
+      ${g.cards.map(rowHTML).join('')}
+    </div>`).join('');
+
+  const undatedHTML = undated.length ? `
+    <div class="extrabox" style="margin:0 0 12px;">
+      <div class="extrabox-title">Oorspronkelijke collectie · ${undated.length} kaart${undated.length===1?'':'en'} (datum onbekend)</div>
+      <p style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Deze kaarten stonden al in je collectie voordat we begonnen bij te houden wanneer iets is toegevoegd.</p>
+      ${undated.slice(0,50).map(rowHTML).join('')}
+      ${undated.length > 50 ? `<p style="font-size:11px; color:var(--muted); margin-top:6px;">+ ${undated.length-50} meer</p>` : ''}
+    </div>` : '';
+
+  body.innerHTML = (groups.length ? groupsHTML : '') + undatedHTML;
+}
+
 async function addToWishlist(item){
   if(wishlist.some(w => w.name === item.name && w.set === item.set)) return;
   wishlist.unshift({ id: 'wish-' + Date.now(), ...item, added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}) });
@@ -10027,6 +10597,55 @@ document.getElementById('openSettings').onclick = ()=>{
 };
 document.getElementById('closeSettings').onclick = ()=> document.getElementById('settingsOverlay').classList.remove('show');
 
+document.getElementById('soldLogBtn').onclick = ()=>{
+  renderSoldLog();
+  document.getElementById('soldLogOverlay').classList.add('show');
+};
+document.getElementById('closeSoldLog').onclick = ()=> document.getElementById('soldLogOverlay').classList.remove('show');
+document.getElementById('closeTimeline').onclick = ()=> document.getElementById('timelineOverlay').classList.remove('show');
+
+// Bouwt het printbare verzekeringsrapport en opent meteen het print-scherm
+// van het toestel (waar "Opslaan als PDF" een systeemoptie is) -- geen los
+// venster nodig, dus geen pop-up-blocker-risico.
+function buildInsuranceReport(){
+  const el = document.getElementById('insuranceReport');
+  if(!el) return;
+  const totalRaw = collection.reduce((s,c)=>s+c.raw*(c.qty||1),0);
+  const totalPsa10 = collection.reduce((s,c)=>s+c.psa10*(c.qty||1),0);
+  const totalCards = collection.reduce((s,c)=>s+(c.qty||1),0);
+  const sorted = collection.slice().sort((a,b)=> b.raw - a.raw);
+  const today = new Date().toLocaleDateString('nl-NL', {day:'numeric', month:'long', year:'numeric'});
+
+  const rows = sorted.map(c => {
+    const art = c.photo
+      ? `<img src="${escapeHtml(c.photo)}">`
+      : `<div class="ir-ph"></div>`;
+    const gradeTxt = c.isGraded ? ` · ${escapeHtml(c.gradingCompany||'Graded')} ${escapeHtml(c.grade||'')}` : (c.condition ? ` · ${escapeHtml(c.condition)}` : '');
+    return `
+      <div class="ir-row">
+        ${art}
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:12.5px;">${escapeHtml(c.name)}${c.qty>1?` (×${c.qty})`:''}</div>
+          <div style="font-size:11px; color:#555;">${escapeHtml(c.set||'')}${gradeTxt}</div>
+        </div>
+        <div style="font-family:monospace; font-size:12px; text-align:right;">
+          raw ${fmt(c.raw)}<br>PSA10 ${fmt(c.psa10)}
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="font-family:sans-serif; padding:24px; max-width:800px; margin:0 auto;">
+      <h1 style="font-size:20px; margin:0 0 4px;">Pokémon-kaartencollectie — verzekeringsrapport</h1>
+      <p style="font-size:12px; color:#555; margin:0 0 18px;">Gegenereerd op ${today} · ${totalCards} kaarten (${collection.length} unieke) · totale raw-waarde ${fmt(totalRaw)} · PSA 10-potentieel ${fmt(totalPsa10)}</p>
+      <p style="font-size:10.5px; color:#777; margin:0 0 18px;">Waardes zijn marktprijs-indicaties (research/live opzoekingen in de app), geen officiële taxatie. Sorteer: duurste kaart eerst.</p>
+      ${rows}
+    </div>`;
+
+  window.print();
+}
+document.getElementById('insuranceReportBtn').onclick = buildInsuranceReport;
+
 /* ============================= MOBIELE ONDERBALK: "Meer"-menu =============================
    De 3 knoppen in dit menu hebben (net als de onderbalk zelf) class="tab" +
    data-view, dus de generieke wiring hierboven (querySelectorAll('.tab')) zet
@@ -10302,6 +10921,327 @@ function jgEnsureSetValues(){
   return jgFetchPromise;
 }
 
+// Echte, gebronde pull-rates per set -- opgezocht via thepricedex.com
+// (community-getrackte data; methodologie: kans per rariteit, en voor
+// "specifieke kaart"-regels de rariteitskans gedeeld door het aantal kaarten
+// in die rariteit, met een aanname van gelijke verdeling). Dekt de sets van
+// Celebrations (2021) t/m nu (2026) -- oudere/vintage sets staan er niet in,
+// die worden tegenwoordig niet meer nieuw verkocht om op te "jagen" via
+// packs. "odds" = 1 op hoeveel PACKS voor die rij. Een rij met "card" erbij
+// is een SPECIFIEKE bekende kaart i.p.v. de hele rariteit (preciezer).
+const PULL_RATE_SETS = {
+  me5:{ name:'Pitch Black', tiers:[
+    {label:'Mega Hyper Rare', odds:1000},
+    {label:'Special Illustration Rare', odds:97},
+    {label:'Ultra Rare', odds:13},
+    {label:'Illustration Rare', odds:9},
+    {label:'Double Rare', odds:5},
+    {label:'Rare', odds:1.4},
+  ]},
+  me4:{ name:'Chaos Rising', tiers:[
+    {label:'Mega Hyper Rare', odds:1100},
+    {label:'Special Illustration Rare', odds:90},
+    {label:'Ultra Rare', odds:12},
+    {label:'Illustration Rare', odds:9},
+    {label:'Double Rare', odds:5},
+    {label:'Rare', odds:1.4},
+  ]},
+  me3:{ name:'Perfect Order', tiers:[
+    {label:'Mega Hyper Rare', odds:1786},
+    {label:'Special Illustration Rare', odds:81},
+    {label:'Ultra Rare', odds:12},
+    {label:'Illustration Rare', odds:9},
+    {label:'Double Rare', odds:5},
+    {label:'Rare', odds:1.4},
+  ]},
+  me2pt5:{ name:'Ascended Heroes', tiers:[
+    {label:'Mega Hyper Rare', odds:540},
+    {label:'Special Illustration Rare — Mega Gengar ex (specifiek)', odds:1540, card:'Mega Gengar ex', cardValue:950},
+    {label:'Special Illustration Rare (algemeen)', odds:70},
+    {label:'Mega Attack Rare', odds:29},
+    {label:'Ultra Rare', odds:21},
+    {label:'Illustration Rare', odds:9},
+    {label:'Double Rare', odds:5},
+    {label:'Rare', odds:1.4},
+  ]},
+  me2:{ name:'Phantasmal Flames', tiers:[
+    {label:'Mega Hyper Rare', odds:1260},
+    {label:'Special Illustration Rare', odds:80},
+    {label:'Ultra Rare', odds:12},
+    {label:'Illustration Rare', odds:9},
+    {label:'Double Rare', odds:5},
+    {label:'Rare', odds:1.4},
+  ]},
+  me1:{ name:'Mega Evolution', tiers:[
+    {label:'Mega Hyper Rare', odds:1260},
+    {label:'Special Illustration Rare', odds:101},
+    {label:'Ultra Rare', odds:12},
+    {label:'Illustration Rare', odds:9},
+    {label:'Double Rare', odds:5},
+    {label:'Rare', odds:1.4},
+  ]},
+  zsv10pt5:{ name:'Black Bolt', tiers:[
+    {label:'Black White Rare', odds:496},
+    {label:'Master Ball Rare', odds:140.1},
+    {label:'Special Illustration Rare', odds:80},
+    {label:'Poké Ball Rare', odds:26.2},
+    {label:'Ultra Rare', odds:17.2},
+    {label:'Illustration Rare', odds:6.1},
+    {label:'Double Rare', odds:4.7},
+    {label:'Rare', odds:1.4},
+  ]},
+  rsv10pt5:{ name:'White Flare', tiers:[
+    {label:'Black White Rare', odds:496},
+    {label:'Master Ball Rare', odds:140.1},
+    {label:'Special Illustration Rare', odds:80},
+    {label:'Poké Ball Rare', odds:26.2},
+    {label:'Ultra Rare', odds:17.2},
+    {label:'Illustration Rare', odds:6.1},
+    {label:'Double Rare', odds:4.7},
+    {label:'Rare', odds:1.4},
+  ]},
+  sv10:{ name:'Destined Rivals', tiers:[
+    {label:'Hyper Rare', odds:149.3},
+    {label:'Special Illustration Rare', odds:94.3},
+    {label:'Ultra Rare', odds:15.6},
+    {label:'Illustration Rare', odds:12.1},
+    {label:'Double Rare', odds:5.0},
+    {label:'Reverse Rare', odds:4.8},
+    {label:'Rare', odds:1.4},
+  ]},
+  sv9:{ name:'Journey Together', tiers:[
+    {label:'Hyper Rare', odds:137.0},
+    {label:'Special Illustration Rare', odds:86.2},
+    {label:'Ultra Rare', odds:15.3},
+    {label:'Illustration Rare', odds:11.8},
+    {label:'Double Rare', odds:4.9},
+    {label:'Reverse Rare', odds:4.7},
+    {label:'Rare', odds:1.4},
+  ]},
+  sv8pt5:{ name:'Prismatic Evolutions', tiers:[
+    {label:'Hyper Rare', odds:178.6},
+    {label:'Special Illustration Rare — Umbreon ex (specifiek)', odds:1441.4, card:'Umbreon ex', cardValue:875},
+    {label:'Special Illustration Rare (algemeen)', odds:45.0},
+    {label:'ACE SPEC Rare', odds:21.4},
+    {label:'Ultra Rare', odds:13.4},
+    {label:'Double Rare', odds:6.1},
+  ]},
+  sv8:{ name:'Surging Sparks', tiers:[
+    {label:'Hyper Rare', odds:188.7},
+    {label:'Special Illustration Rare — Pikachu ex (specifiek)', odds:956.5, card:'Pikachu ex', cardValue:115},
+    {label:'Special Illustration Rare (algemeen)', odds:87.0},
+    {label:'Illustration Rare', odds:13.0},
+    {label:'ACE SPEC Rare', odds:19.9},
+    {label:'Ultra Rare', odds:14.8},
+    {label:'Double Rare', odds:5.9},
+  ]},
+  sv7:{ name:'Stellar Crown', tiers:[
+    {label:'Hyper Rare', odds:137.0},
+    {label:'Special Illustration Rare', odds:90.1},
+    {label:'ACE SPEC Rare', odds:20.2},
+    {label:'Ultra Rare', odds:14.8},
+    {label:'Illustration Rare', odds:12.8},
+    {label:'Double Rare', odds:5.9},
+    {label:'Reverse Rare', odds:4.5},
+    {label:'Rare', odds:1.3},
+  ]},
+  sv6pt5:{ name:'Shrouded Fable', tiers:[
+    {label:'Hyper Rare', odds:128.3},
+    {label:'Special Illustration Rare', odds:87.2},
+    {label:'ACE SPEC Rare', odds:20},
+    {label:'Ultra Rare', odds:14.3},
+    {label:'Illustration Rare', odds:13.0},
+    {label:'Double Rare', odds:6},
+    {label:'Reverse Rare', odds:4.2},
+    {label:'Rare', odds:1.3},
+  ]},
+  sv6:{ name:'Twilight Masquerade', tiers:[
+    {label:'Hyper Rare', odds:147.1},
+    {label:'Special Illustration Rare', odds:85.5},
+    {label:'ACE SPEC Rare', odds:19.8},
+    {label:'Ultra Rare', odds:15.1},
+    {label:'Illustration Rare', odds:12.9},
+    {label:'Double Rare', odds:5.9},
+    {label:'Reverse Rare', odds:5.0},
+    {label:'Rare', odds:1.3},
+  ]},
+  sv5:{ name:'Temporal Forces', tiers:[
+    {label:'Hyper Rare', odds:138.9},
+    {label:'Special Illustration Rare', odds:85.5},
+    {label:'ACE SPEC Rare', odds:20},
+    {label:'Ultra Rare', odds:15.0},
+    {label:'Illustration Rare', odds:13.0},
+    {label:'Double Rare', odds:5.9},
+    {label:'Reverse Rare', odds:5.4},
+    {label:'Rare', odds:1.3},
+  ]},
+  sv4pt5:{ name:'Paldean Fates', tiers:[
+    {label:'Hyper Rare', odds:62.1},
+    {label:'Special Illustration Rare', odds:58.1},
+    {label:'Shiny Ultra Rare', odds:13.0},
+    {label:'Illustration Rare', odds:13.9},
+    {label:'Ultra Rare', odds:15.1},
+    {label:'Double Rare', odds:6.3},
+    {label:'Shiny Rare', odds:3.9},
+    {label:'Reverse Rare', odds:3.2},
+    {label:'Rare', odds:1.3},
+  ]},
+  sv4:{ name:'Paradox Rift', tiers:[
+    {label:'Hyper Rare', odds:82.0},
+    {label:'Special Illustration Rare', odds:47.4},
+    {label:'Illustration Rare', odds:13.0},
+    {label:'Ultra Rare', odds:15.1},
+    {label:'Double Rare', odds:6.4},
+    {label:'Reverse Rare', odds:3.2},
+    {label:'Rare', odds:1.3},
+  ]},
+  sv3pt5:{ name:'151', tiers:[
+    {label:'Hyper Rare', odds:51.5},
+    {label:'Special Illustration Rare', odds:32.2},
+    {label:'Illustration Rare', odds:11.8},
+    {label:'Ultra Rare', odds:15.5},
+    {label:'Double Rare', odds:7.5},
+    {label:'Reverse Rare', odds:3.3},
+    {label:'Rare', odds:1.2},
+  ]},
+  sv3:{ name:'Obsidian Flames', tiers:[
+    {label:'Hyper Rare', odds:52.1},
+    {label:'Special Illustration Rare — Charizard ex (specifiek)', odds:191.7, card:'Charizard ex', cardValue:185},
+    {label:'Special Illustration Rare (algemeen)', odds:31.9},
+    {label:'Illustration Rare', odds:13.2},
+    {label:'Ultra Rare', odds:15.1},
+  ]},
+  sv2:{ name:'Paldea Evolved', tiers:[
+    {label:'Hyper Rare', odds:56.8},
+    {label:'Special Illustration Rare', odds:31.5},
+    {label:'Illustration Rare', odds:13.0},
+    {label:'Ultra Rare', odds:15.1},
+    {label:'Double Rare', odds:7.3},
+    {label:'Reverse Rare', odds:3.8},
+    {label:'Rare', odds:1.3},
+  ]},
+  sv1:{ name:'Scarlet & Violet', tiers:[
+    {label:'Hyper Rare', odds:54.1},
+    {label:'Special Illustration Rare', odds:31.7},
+    {label:'Illustration Rare', odds:13.0},
+    {label:'Ultra Rare', odds:15.2},
+    {label:'Double Rare', odds:7.3},
+    {label:'Reverse Rare', odds:4.7},
+    {label:'Rare', odds:1.3},
+  ]},
+  swsh12pt5:{ name:'Crown Zenith', tiers:[
+    {label:'GG Secret Rare', odds:125},
+    {label:'Secret Rare', odds:133.3},
+    {label:'GG Rare Holo VMAX', odds:88.9},
+    {label:'Rare Holo VMAX', odds:49.1},
+    {label:'Ultra Rare', odds:35.1},
+    {label:'GG Ultra Rare', odds:26.7},
+    {label:'GG Rare Holo VSTAR', odds:26.7},
+    {label:'Rare Holo VSTAR', odds:30.7},
+    {label:'GG Rare Holo V', odds:29.6},
+    {label:'Radiant Rare', odds:22.0},
+    {label:'Rare Holo V', odds:8.1},
+    {label:'Rare Holo', odds:5.6},
+    {label:'GG Rare Holo', odds:4.5},
+    {label:'Rare', odds:1.6},
+  ]},
+  swsh12:{ name:'Silver Tempest', tiers:[
+    {label:'TG Rare Holo VMAX', odds:129.7},
+    {label:'Secret Rare', odds:106.4},
+    {label:'TG Secret Rare', odds:109.1},
+    {label:'TG Ultra Rare', odds:86.4},
+    {label:'Rainbow Rare', odds:79.4},
+    {label:'TG Rare Holo V', odds:74.1},
+    {label:'Ultra Rare', odds:27.0},
+    {label:'Rare Holo VSTAR', odds:31.4},
+    {label:'Radiant Rare', odds:19.6},
+    {label:'TG Rare Holo', odds:12.0},
+    {label:'Rare Holo V', odds:8.7},
+    {label:'Rare Holo', odds:5.6},
+    {label:'Rare', odds:1.6},
+  ]},
+  swsh11:{ name:'Lost Origin', tiers:[
+    {label:'TG Rare Holo VMAX', odds:144.3},
+    {label:'Secret Rare', odds:131.6},
+    {label:'TG Secret Rare', odds:109.1},
+    {label:'TG Ultra Rare', odds:96.2},
+    {label:'Rare Holo VMAX', odds:158.4},
+    {label:'Rainbow Rare', odds:78.1},
+    {label:'TG Rare Holo V', odds:82.5},
+    {label:'Ultra Rare', odds:25.6},
+    {label:'Rare Holo VSTAR', odds:26.4},
+    {label:'Radiant Rare', odds:20},
+    {label:'TG Rare Holo', odds:11.7},
+    {label:'Rare Holo V', odds:8.6},
+    {label:'Rare Holo', odds:5.6},
+    {label:'Rare', odds:1.7},
+  ]},
+  swsh10:{ name:'Astral Radiance', tiers:[
+    {label:'TG Rare Holo VMAX', odds:254.9},
+    {label:'Secret Rare', odds:131.6},
+    {label:'TG Secret Rare', odds:128.6},
+    {label:'TG Ultra Rare', odds:101.9},
+    {label:'Rare Holo VMAX', odds:129.7},
+    {label:'Rainbow Rare', odds:78.1},
+    {label:'TG Rare Holo V', odds:56.6},
+    {label:'Rare Holo VSTAR', odds:37.1},
+    {label:'Ultra Rare', odds:25.3},
+    {label:'Radiant Rare', odds:20.1},
+    {label:'TG Rare Holo', odds:11.4},
+    {label:'Rare Holo V', odds:7.8},
+    {label:'Rare Holo', odds:5.7},
+    {label:'Rare', odds:1.7},
+  ]},
+  cel25:{ name:'Celebrations', tiers:[
+    {label:'Secret Rare', odds:150},
+    {label:'Ultra Rare', odds:25},
+    {label:'Rare Holo VMAX', odds:13},
+    {label:'Rare Holo V', odds:2.8},
+    {label:'Classic Collection', odds:2.5},
+  ]},
+  swsh7:{ name:'Evolving Skies', tiers:[
+    {label:'Secret Rare', odds:109.9},
+    {label:'Rainbow Rare — Umbreon VMAX Alt Art (specifiek)', odds:1929.8, card:'Umbreon VMAX', cardValue:2300},
+    {label:'Rainbow Rare (algemeen)', odds:87.7},
+    {label:'Ultra Rare', odds:25.8},
+    {label:'Rare Holo VMAX', odds:17.9},
+    {label:'Rare Holo V', odds:9.5},
+  ]},
+};
+const PULL_RATE_SOURCE_DATE = '28 aug. 2026';
+
+// Setlogo's voor PULL_RATE_SETS: GEEN losse/gegokte URL's -- dezelfde
+// databronnen die de rest van de site al gebruikt (fetchAllSets() ->
+// pokemontcg.io, met TCGdex als terugval voor de nieuwste sets die
+// pokemontcg.io nog niet heeft, zoals de "Mega Evolution"-reeks). Matcht
+// eerst op set-id (pokemontcg.io), dan op naam (TCGdex) -- geen match =>
+// gewoon geen logo, nooit een verzonnen/foute afbeelding.
+let PULL_RATE_SET_LOGOS = null;
+async function ensurePullRateSetLogos(){
+  if(PULL_RATE_SET_LOGOS) return PULL_RATE_SET_LOGOS;
+  const map = {};
+  try{
+    const ptcgSets = await fetchAllSets();
+    (ptcgSets||[]).forEach(s => {
+      if(PULL_RATE_SETS[s.id] && s.images && s.images.logo) map[s.id] = s.images.logo;
+    });
+  }catch(e){ console.warn('pull-rate setlogo\'s (pokemontcg.io) mislukt', e); }
+  const missing = Object.keys(PULL_RATE_SETS).filter(k => !map[k]);
+  if(missing.length){
+    try{
+      const tcgdexSets = await tcgdexQuery('/sets', { 'pagination:itemsPerPage': '250' });
+      const byName = {};
+      (tcgdexSets||[]).forEach(s => { byName[String(s.name||'').toLowerCase()] = s.logo || s.symbol || null; });
+      missing.forEach(k => {
+        const hit = byName[PULL_RATE_SETS[k].name.toLowerCase()];
+        if(hit) map[k] = hit;
+      });
+    }catch(e){ console.warn('pull-rate setlogo\'s (TCGdex) mislukt', e); }
+  }
+  PULL_RATE_SET_LOGOS = map;
+  return map;
+}
+
 (function initJachtgids(){
   const slider = document.getElementById('jgBudgetSlider');
   if(!slider) return;
@@ -10397,6 +11337,171 @@ function jgEnsureSetValues(){
     };
   }
   update(); // zet alvast het bedrag-label goed (bv. na terugkeer op de pagina), zonder de aanbeveling te tonen
+
+  // "Is een doos de moeite waard?" -- een bewust simpele rekensom, alleen
+  // over de ENE kaart die je hoopt te pullen (kaartwaarde × verwacht aantal
+  // exemplaren = aantal packs / kans-per-pack), vergeleken met wat je aankoop
+  // kost. Geen poging om de volledige inhoud van een doos te modelleren (de
+  // rest van de hits/basiskaarten tellen hier niet in mee). Voor de kaarten
+  // in PULL_RATE_SETS gebruiken we echte, gebronde pull-rates (thepricedex.com),
+  // per set en per rariteit; voor alles daarbuiten vult de gebruiker zelf een
+  // kans in, expliciet als eigen schatting gelabeld, nooit als claim van ons.
+  const boxCalcSetPicker = document.getElementById('boxCalcSetPicker');
+  const boxCalcPicker = document.getElementById('boxCalcCardPicker');
+  const boxCalcTierRow = document.getElementById('boxCalcTierRow');
+  const boxCalcSetPreview = document.getElementById('boxCalcSetPreview');
+  const boxCalcBtn = document.getElementById('boxCalcBtn');
+  const boxCalcResult = document.getElementById('boxCalcResult');
+  const boxCalcSourceNote = document.getElementById('boxCalcSourceNote');
+  const boxCalcCardValueInput = document.getElementById('boxCalcCardValue');
+  const boxCalcOddsInput = document.getElementById('boxCalcOdds');
+  let boxCalcHasSourcedOdds = false;
+
+  if(boxCalcSetPicker && boxCalcPicker){
+    Object.keys(PULL_RATE_SETS).forEach(setKey => {
+      const opt = document.createElement('option');
+      opt.value = setKey;
+      opt.textContent = PULL_RATE_SETS[setKey].name;
+      boxCalcSetPicker.appendChild(opt);
+    });
+
+    boxCalcSetPicker.onchange = () => {
+      boxCalcPicker.innerHTML = '<option value="">— Kies een rariteit —</option>';
+      const set = PULL_RATE_SETS[boxCalcSetPicker.value];
+      if(set){
+        set.tiers.forEach((tier, i) => {
+          const opt = document.createElement('option');
+          opt.value = String(i);
+          opt.textContent = tier.label + (tier.card ? '' : ` (1 op ${tier.odds} packs)`);
+          boxCalcPicker.appendChild(opt);
+        });
+        boxCalcTierRow.style.display = '';
+        if(boxCalcSetPreview){
+          ensurePullRateSetLogos().then(logos => {
+            const url = logos[boxCalcSetPicker.value];
+            boxCalcSetPreview.innerHTML = (url ? logoImgHTML(url, set.name) : '') + `<span>${escapeHtml(set.name)}</span>`;
+          });
+        }
+      } else {
+        boxCalcTierRow.style.display = 'none';
+        if(boxCalcSetPreview) boxCalcSetPreview.innerHTML = '';
+      }
+      boxCalcHasSourcedOdds = false;
+      boxCalcSourceNote.textContent = '';
+    };
+
+    boxCalcPicker.onchange = () => {
+      const set = PULL_RATE_SETS[boxCalcSetPicker.value];
+      const tier = set && set.tiers[parseInt(boxCalcPicker.value, 10)];
+      if(tier){
+        boxCalcOddsInput.value = tier.odds;
+        if(tier.cardValue != null){
+          boxCalcCardValueInput.value = tier.cardValue;
+        }
+        boxCalcHasSourcedOdds = true;
+        const wat = tier.card ? `de kans op ${tier.card}` : `de kans op deze rariteit`;
+        boxCalcSourceNote.textContent = `Kans automatisch ingevuld met een echte, gebronde pull-rate voor ${wat} in ${set.name} (thepricedex.com, bijgewerkt ${PULL_RATE_SOURCE_DATE}) -- pas gerust aan als je zelf betere/actuelere info hebt.${tier.cardValue == null ? ' Vul zelf de waarde van de kaart in die je hoopt te pullen.' : ''}`;
+      } else {
+        boxCalcHasSourcedOdds = false;
+        boxCalcSourceNote.textContent = '';
+      }
+    };
+  }
+
+  if(boxCalcBtn){
+    boxCalcBtn.onclick = () => {
+      const packs = parseFloat(document.getElementById('boxCalcPacks').value);
+      const price = parseFloat(document.getElementById('boxCalcPrice').value);
+      const cardValue = parseFloat(boxCalcCardValueInput.value);
+      const oddsPerPack = parseFloat(boxCalcOddsInput.value);
+      if(!(packs > 0) || !(price > 0) || !(cardValue > 0) || !(oddsPerPack > 0)){
+        boxCalcResult.innerHTML = `<p style="font-size:12px;color:var(--muted);margin:0;">Vul alle velden in met een getal groter dan 0.</p>`;
+        return;
+      }
+      const expectedCopies = packs / oddsPerPack;
+      const ev = expectedCopies * cardValue;
+      const diff = ev - price;
+      const isKnownCard = boxCalcHasSourcedOdds;
+      const verdict = diff > 0
+        ? { label: 'Statistisch voordelig', color: 'var(--green)' }
+        : { label: 'Statistisch nadelig', color: 'var(--red)' };
+      boxCalcResult.innerHTML = `
+        <div class="jg-reco-block">
+          <p class="jg-tag" style="color:${verdict.color};">${verdict.label}</p>
+          <h4>Verwachte waarde: ${fmt(Math.round(ev))} (voor deze ene kaart, over ${packs} pack${packs===1?'':'s'})</h4>
+          <p>Bij 1 op ${oddsPerPack} packs verwacht je gemiddeld ${expectedCopies.toFixed(3)} exemplaar van deze kaart uit je aankoop, goed voor ${fmt(Math.round(ev))} aan waarde — tegenover ${fmt(price)} die je aankoop kost. Op de lange termijn ${diff > 0 ? `win je hierop gemiddeld ${fmt(Math.round(diff))}` : `verlies je hierop gemiddeld ${fmt(Math.round(-diff))}`} — puur gerekend over deze ene kaart; de rest van de inhoud (andere hits, basiskaarten) telt hier niet in mee en maakt het plaatje in werkelijkheid iets gunstiger.</p>
+          <span class="jg-pill">${isKnownCard ? `Kans: echte pull-rate (thepricedex.com)` : `Kans is jouw eigen schatting, geen officiële pull-rate`}</span>
+        </div>`;
+    };
+  }
+
+  // "Pull rates per set" -- eigen overzichtelijke variant van thepricedex.com's
+  // tabellen: geen gegokte gemiddelde kaartwaardes/EV per rariteit (die hebben
+  // we niet betrouwbaar per set), wel de echte, gebronde kans per rariteit plus
+  // het verwachte aantal per standaard doos van 36 packs (pure rekensom uit die
+  // kans, geen extra aanname).
+  const PULL_RATES_PACKS_PER_BOX = 36;
+  const openPullRatesBtn = document.getElementById('openPullRatesBtn');
+  const pullRatesOverlay = document.getElementById('pullRatesOverlay');
+  const pullRatesBody = document.getElementById('pullRatesBody');
+  const closePullRatesBtn = document.getElementById('closePullRates');
+  const pullRatesSourceDateEl = document.getElementById('pullRatesSourceDate');
+
+  function renderPullRatesGrid(){
+    if(pullRatesSourceDateEl) pullRatesSourceDateEl.textContent = PULL_RATE_SOURCE_DATE;
+    pullRatesBody.innerHTML = `<div class="pr-grid" id="prGrid"></div>`;
+    const grid = document.getElementById('prGrid');
+    ensurePullRateSetLogos().then(logos => {
+      grid.innerHTML = Object.keys(PULL_RATE_SETS).map(key => {
+        const set = PULL_RATE_SETS[key];
+        const url = logos[key];
+        const img = url ? logoImgHTML(url, set.name, 'style="height:34px;max-width:100%;object-fit:contain;"')
+                         : `<div class="pr-card-ph">${escapeHtml(set.name)}</div>`;
+        return `<div class="pr-card" data-setkey="${escapeHtml(key)}" role="button" tabindex="0">${img}<div class="pr-card-name">${escapeHtml(set.name)}</div></div>`;
+      }).join('');
+      grid.querySelectorAll('.pr-card').forEach(card => {
+        card.onclick = () => renderPullRateDetail(card.dataset.setkey);
+      });
+    });
+  }
+
+  function renderPullRateDetail(key){
+    const set = PULL_RATE_SETS[key];
+    if(!set) return;
+    ensurePullRateSetLogos().then(logos => {
+      const url = logos[key];
+      const img = url ? logoImgHTML(url, set.name) : '';
+      const rows = set.tiers.map(tier => {
+        const perBox = PULL_RATES_PACKS_PER_BOX / tier.odds;
+        return `<tr>
+          <td>${escapeHtml(tier.label)}${tier.card ? `<div class="pr-chase">chase card: ${escapeHtml(tier.card)}${tier.cardValue != null ? ` (~${fmt(tier.cardValue)})` : ''}</div>` : ''}</td>
+          <td>1 op ${tier.odds} packs</td>
+          <td>${perBox >= 1 ? perBox.toFixed(1) : perBox.toFixed(3)} per doos</td>
+        </tr>`;
+      }).join('');
+      pullRatesBody.innerHTML = `
+        <button type="button" class="pr-back" id="prBackBtn">‹ Terug naar alle sets</button>
+        <div class="pr-detail">
+          <div class="pr-detail-head">${img}<h4>${escapeHtml(set.name)}</h4></div>
+          <table class="pr-table">
+            <thead><tr><th>Rariteit</th><th>Kans per pack</th><th>Per doos (${PULL_RATES_PACKS_PER_BOX} packs)</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <p class="pr-note">Bron: thepricedex.com, bijgewerkt ${PULL_RATE_SOURCE_DATE}. "Per doos" is een pure rekensom (${PULL_RATES_PACKS_PER_BOX} packs × kans) uitgaande van een standaard doos van ${PULL_RATES_PACKS_PER_BOX} packs -- sommige producten (ETB's, speciale bundels) wijken hiervan af.</p>
+        </div>`;
+      document.getElementById('prBackBtn').onclick = renderPullRatesGrid;
+    });
+  }
+
+  if(openPullRatesBtn && pullRatesOverlay){
+    openPullRatesBtn.onclick = () => {
+      renderPullRatesGrid();
+      pullRatesOverlay.classList.add('show');
+    };
+  }
+  if(closePullRatesBtn && pullRatesOverlay){
+    closePullRatesBtn.onclick = () => pullRatesOverlay.classList.remove('show');
+  }
 })();
 
 /* ============================= INIT ============================= */
@@ -10405,6 +11510,7 @@ function jgEnsureSetValues(){
     await loadCollection();
     seedCatalogHistoryIfNeeded();
     await loadWishlist();
+    await loadSoldLog();
     await loadSetTotals();
     await recordPortfolioSnapshot();
     switchView('home');
