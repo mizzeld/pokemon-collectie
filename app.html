@@ -3253,15 +3253,31 @@ const PTCGIO_BASE = 'https://api.pokemontcg.io/v2';
 // that do have real price data. Retry a few times with a short backoff
 // before treating it as a real failure -- callers that used to do
 // fetch(...)+!res.ok-throw directly should use this instead.
+// BUG (gevonden aug. 2026, derde ronde): pokemontcg.io's gratis laag faalt
+// niet af en toe, maar op ongeveer 6 van de 10 verzoeken (live gemeten: 500-
+// fouten binnen ~150ms) -- 3 pogingen met een kort, vast backoffje (max ~1s
+// totaal) gaf daardoor bij ruim 1 op de 4 kaartensets-openingen alsnog een
+// harde mislukking (val terug op TCGdex, dus geen prijzen). Faalpogingen zijn
+// zelf bijna instant (geen trage timeout), dus veel meer pogingen doen is
+// goedkoop -- alleen een ECHTE succesvolle poging duurt ~6-7s, en zodra die
+// lukt stopt de loop meteen. Daarnaast bleek een enkele keer een 200-status
+// toch een afgeknipt/kapot JSON-antwoord te geven (ontdekt bij een set met
+// pageSize 250) -- dat werd voorheen NERGENS opnieuw geprobeerd, omdat de
+// JSON-parse pas buiten deze functie gebeurde. Nu leest en parsed deze
+// functie de body zelf, zodat ook een kapot-maar-200 antwoord gewoon als
+// mislukte poging telt en opnieuw geprobeerd wordt. Retourneert nu meteen de
+// al-geparste JSON (niet meer de Response) -- scheelt elke aanroeper zijn
+// eigen .json() call.
 async function ptcgioFetch(url, attempts){
-  attempts = attempts || 3;
+  attempts = attempts || 8;
   let lastErr;
   for(let i=0;i<attempts;i++){
     try{
-      if(i>0) await new Promise(r=>setTimeout(r, 350*i));
+      if(i>0) await new Promise(r=>setTimeout(r, Math.min(250*i, 1500)));
       const res = await fetch(url);
       if(!res.ok) throw new Error('pokemontcg.io fout (' + res.status + ')');
-      return res;
+      const text = await res.text();
+      return JSON.parse(text); // een afgeknipt 200-antwoord gooit hier ook een fout -- telt als mislukte poging
     }catch(e){ lastErr = e; }
   }
   throw lastErr;
@@ -3293,8 +3309,7 @@ function extractSetNameHint(setText){
 
 async function ptcgioQuery(qExpr, pageSize){
   const params = new URLSearchParams({ q: qExpr, pageSize: String(pageSize || 10) });
-  const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
-  const json = await res.json();
+  const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
   return Array.isArray(json.data) ? json.data : [];
 }
 
@@ -3373,19 +3388,42 @@ const TCGDEX_BASE = 'https://api.tcgdex.net/v2/en';
 // TCGdex heeft nergens marktprijzen, in geen enkele taal.
 const TCGDEX_BASE_JA = 'https://api.tcgdex.net/v2/ja';
 
-async function tcgdexQuery(path, params){
+// Zelfde robuustheids-fix als ptcgioFetch hierboven: TCGdex is de laatste
+// terugval-bron (als pokemontcg.io al mislukt is) -- als DIE ook zonder
+// retry meteen opgeeft bij een korte hapering, houdt de gebruiker helemaal
+// niks over. Retryt nu net zo vaak/agressief, en parsed de body zelf zodat
+// een kapot-maar-200-antwoord ook als mislukte poging telt.
+async function tcgdexQuery(path, params, attempts){
+  attempts = attempts || 6;
   const url = new URL(TCGDEX_BASE + path);
   Object.entries(params||{}).forEach(([k,v])=>{ if(v!==undefined && v!==null && v!=='') url.searchParams.set(k, v); });
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('TCGdex fout (' + res.status + ')');
-  return res.json();
+  let lastErr;
+  for(let i=0;i<attempts;i++){
+    try{
+      if(i>0) await new Promise(r=>setTimeout(r, Math.min(250*i, 1500)));
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('TCGdex fout (' + res.status + ')');
+      const text = await res.text();
+      return JSON.parse(text);
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr;
 }
-async function tcgdexQueryJa(path, params){
+async function tcgdexQueryJa(path, params, attempts){
+  attempts = attempts || 6;
   const url = new URL(TCGDEX_BASE_JA + path);
   Object.entries(params||{}).forEach(([k,v])=>{ if(v!==undefined && v!==null && v!=='') url.searchParams.set(k, v); });
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('TCGdex (JA) fout (' + res.status + ')');
-  return res.json();
+  let lastErr;
+  for(let i=0;i<attempts;i++){
+    try{
+      if(i>0) await new Promise(r=>setTimeout(r, Math.min(250*i, 1500)));
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('TCGdex (JA) fout (' + res.status + ')');
+      const text = await res.text();
+      return JSON.parse(text);
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr;
 }
 
 // TCGdex equivalent of ptcgioFindImage(), used only when the pokemontcg.io
@@ -5661,8 +5699,7 @@ async function searchByNumberTotal(numberInfo){
     for(const num of numberVariants){
       try{
         const params = new URLSearchParams({ q: `number:"${num}" set.printedTotal:${total}`, pageSize: '20' });
-        const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
-        const json = await res.json();
+        const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
         const cards = Array.isArray(json.data) ? json.data : [];
         if(cards.length) return cards;
       }catch(e){ /* volgende variant proberen */ }
@@ -5699,8 +5736,7 @@ async function autoRecognizeCard(dataUrl){
     for(const candidate of nameCandidates){
       try{
         const params = new URLSearchParams({ q: `name:"${candidate}*"`, pageSize: '10' });
-        const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
-        const json = await res.json();
+        const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
         const found = Array.isArray(json.data) ? json.data : [];
         if(found.length){ candidates = found; break; }
       }catch(e){ continue; }
@@ -6340,8 +6376,7 @@ async function fetchAllSets(){
     }
   }catch(e){}
   try{
-    const res = await ptcgioFetch(PTCGIO_BASE + '/sets?orderBy=-releaseDate&pageSize=250');
-    const json = await res.json();
+    const json = await ptcgioFetch(PTCGIO_BASE + '/sets?orderBy=-releaseDate&pageSize=250');
     // lang:'en' getagd zodat openSetDetail()/fetchCardsForSet() weten dat dit
     // een Engelse (pokemontcg.io) set is -- alleen relevant sinds Japanse sets
     // via fetchAllSetsJa() ernaast bestaan, zie die functie hieronder.
@@ -7652,8 +7687,7 @@ async function fetchCardsForSet(set){
     let totalCount = Infinity;
     while(rawCards.length < totalCount && page <= 4){
       const params = new URLSearchParams({ q: 'set.id:' + set.id, pageSize: String(pageSize), page: String(page) });
-      const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
-      const json = await res.json();
+      const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
       const list = Array.isArray(json.data) ? json.data : [];
       rawCards = rawCards.concat(list);
       // Als de API ooit een totalCount-veld mist, NIET rawCards.length als
@@ -9059,8 +9093,7 @@ async function searchCardsViaAPI(q){
     let qExpr = 'name:"' + q + '*"';
     if(selectedSet) qExpr += ' set.id:' + selectedSet.id;
     const params = new URLSearchParams({ q: qExpr, pageSize: '6', orderBy: '-set.releaseDate' });
-    const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
-    const json = await res.json();
+    const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
     const list = Array.isArray(json.data) ? json.data : [];
     return list.map(card => {
       const { raw, source } = apiPrices(card);
@@ -10224,8 +10257,7 @@ async function dexFetchAllCards(name){
       // parameter teruggeeft), maar zo hoeft de juiste volgorde niet
       // uitsluitend op die eigen sortering te vertrouwen.
       const params = new URLSearchParams({ q: 'name:"' + name + '"', pageSize: String(pageSize), page: String(page), orderBy: '-set.releaseDate' });
-      const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
-      const json = await res.json();
+      const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
       const list = Array.isArray(json.data) ? json.data : [];
       rawCards = rawCards.concat(list);
       totalCount = typeof json.totalCount === 'number' ? json.totalCount : rawCards.length;
@@ -10867,8 +10899,7 @@ async function jgComputeSetValues(){
         let totalCount = Infinity;
         while(rawCards.length < totalCount && page <= 4){
           const params = new URLSearchParams({ q: 'set.id:' + s.id, pageSize: String(pageSize), page: String(page) });
-          const res = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
-          const json = await res.json();
+          const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
           const list = Array.isArray(json.data) ? json.data : [];
           rawCards = rawCards.concat(list);
           totalCount = typeof json.totalCount === 'number' ? json.totalCount : rawCards.length;
