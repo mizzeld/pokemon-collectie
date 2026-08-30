@@ -2584,7 +2584,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
           <div><label>Raw ($)</label><input id="fRaw" type="number" step="0.01"></div>
           <div><label>PSA 10 ($)</label><input id="fPsa10" type="number" step="0.01"></div>
         </div>
-        <div class="jp-note" id="jpNote" style="display:none;">Voor Japanse kaarten zoekt de app de prijs automatisch op via JustTCG als je daar in Instellingen een (gratis) sleutel voor hebt ingevuld — anders vul je 'm zelf in.</div>
+        <div class="jp-note" id="jpNote" style="display:none;">Voor Japanse kaarten toont de app automatisch een gratis marktprijs (via TCGdex/Cardmarket) zodra die bekend is voor de kaart. Heb je in Instellingen een (gratis) JustTCG-sleutel ingevuld, dan kun je die daarnaast gebruiken om live te verversen — anders vul je 'm zelf in.</div>
         <div class="formrow two">
           <div><label>Betaald ($, optioneel)</label><input id="fPaid" type="number" step="0.01"></div>
           <div><label>Aantal</label><input id="fQty" type="number" step="1" min="1" value="1"></div>
@@ -2725,7 +2725,8 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       <div class="extrabox">
         <div class="extrabox-title">Japanse kaartprijzen (optioneel)</div>
         <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 10px;">
-          Japanse kaarten hebben nu geen automatische marktprijs (PokemonPriceTracker en TCGdex hebben daar geen data voor). JustTCG heeft wel gratis Japanse Pokémon-prijzen, maar met een klein dagelijks limiet (100 opzoekingen/dag) — daarom vraagt de app hier je eigen sleutel, i.p.v. een ingebouwde zoals bij de Engelse kaarten.
+          Japanse kaarten laten sinds kort automatisch een gratis marktprijs zien (via TCGdex/Cardmarket, in euro's) — geen sleutel nodig, dat werkt al vanzelf bij het bekijken van een set. Voor de allernieuwste kaarten (nog geen paar weken uit) staat er soms nog geen prijs, omdat Cardmarket die zelf ook nog niet heeft.
+          JustTCG is een aanvullende, tweede bron die je zelf kunt koppelen: handig als je voor een specifieke kaart een live/actuele check wilt (via de knop "Check live prijs"), met een klein dagelijks limiet (100 opzoekingen/dag) — daarom vraagt de app hier je eigen sleutel.
           Gratis aan te maken via <span style="color:var(--text);">justtcg.com</span> (geen betaalgegevens nodig).
           <strong>Deze sleutel wordt alléén lokaal op dit apparaat bewaard</strong> — niet in de site-code op GitHub.
         </p>
@@ -6372,6 +6373,44 @@ function apiPrices(card){
   return {raw: null, source: null};
 }
 
+// TCGdex-tegenhanger van apiPrices() hierboven -- ontdekt aug. 2026: TCGdex
+// levert op zijn PER-KAART detailendpoint (/cards/{id}, NIET de lijst-
+// endpoints) al gratis een `pricing.cardmarket`-blok mee, ook voor Japanse
+// kaarten (bevestigd: ~96% van recent onderzochte Japanse kaarten had dit).
+// Zelfde EUR->canonieke-USD-omrekening als apiPrices() hierboven, om exact
+// dezelfde reden: fmt() verwacht overal "raw" als USD-bedrag.
+function tcgdexCardPricing(card){
+  const cm = card.pricing && card.pricing.cardmarket;
+  if(!cm) return {raw: null, source: null};
+  const priceEUR = cm.trend || cm.avg7 || cm.avg30 || cm.avg || cm.low;
+  if(!priceEUR) return {raw: null, source: null};
+  return {raw: priceEUR / USD_TO_EUR, source: 'Cardmarket'};
+}
+
+// Haalt voor een lijst TCGdex-kaart-ID's in kleine gelijktijdige batches de
+// per-kaart details op om de pricing te verrijken (de lijst-endpoint zelf
+// levert geen pricing) -- zelfde BATCH-patroon als fillImportPhotos() elders
+// in dit bestand. queryFn is tcgdexQuery (Engelse/internationale terugval) of
+// tcgdexQueryJa (Japanse kaarten) -- BELANGRIJK: de juiste meegeven, anders
+// wordt een Engelse kaart-ID per ongeluk tegen de Japanse taalvariant van
+// TCGdex bevraagd (of andersom) en levert dat stilletjes 0 resultaten op.
+// Geeft een Map terug van id -> {raw, source}.
+async function enrichTcgdexPricing(cardIds, queryFn){
+  queryFn = queryFn || tcgdexQuery;
+  const BATCH = 5;
+  const result = new Map();
+  for(let i=0; i<cardIds.length; i += BATCH){
+    const batch = cardIds.slice(i, i+BATCH);
+    await Promise.all(batch.map(async (id) => {
+      try{
+        const full = await queryFn('/cards/' + id, {});
+        result.set(id, tcgdexCardPricing(full));
+      }catch(e){ /* stille terugval -- deze kaart blijft gewoon zonder prijs */ }
+    }));
+  }
+  return result;
+}
+
 async function runSearch(){
   const q = document.getElementById('globalSearch').value.trim();
   if(!q) return;
@@ -7747,8 +7786,8 @@ function extractCardVariants(card){
 // repeat every time you reopen the same set.
 async function fetchCardsForSet(set){
   try{
-    const cached = localStorage.getItem('pkc_setdetail_v7_' + set.id);
-    const cachedTs = localStorage.getItem('pkc_setdetail_v7_' + set.id + '_ts');
+    const cached = localStorage.getItem('pkc_setdetail_v8_' + set.id);
+    const cachedTs = localStorage.getItem('pkc_setdetail_v8_' + set.id + '_ts');
     if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 24*60*60*1000){
       const parsedCache = JSON.parse(cached);
       if(applySetPriceOverrides(set.id, parsedCache.cards)) parsedCache.hasPrices = true;
@@ -7828,12 +7867,24 @@ async function fetchCardsForSet(set){
       console.warn('TCGdex set-ID opzoeken via naam mislukt, val terug op pokemontcg.io-ID:', e.message||e);
     }
     const tdCards = await tcgdexQuery('/cards', { id: tdSetId + '*', 'pagination:itemsPerPage': '250' });
-    cards = (Array.isArray(tdCards) ? tdCards : []).map(card => ({
-      name: card.name, number: card.localId,
-      image: card.image ? card.image + '/high.webp' : null,
-      raw: null, psa10: null, rarity: null, types: null,
-      supertype: null, subtypes: null, variants: null
-    }));
+    const tdCardList = Array.isArray(tdCards) ? tdCards : [];
+    // TCGdex's lijst-endpoint zelf levert geen pricing mee (bevestigd aug.
+    // 2026), maar het per-kaart detailendpoint wel -- zelfde gratis Cardmarket-
+    // databron die we nu ook voor Japanse kaarten gebruiken (zie
+    // enrichTcgdexPricing()). Dit was voorheen de reden dat kaarten "geen
+    // prijs" leken te hebben zodra pokemontcg.io tijdelijk uitviel en de site
+    // op deze terugval leunde.
+    const tdPricing = await enrichTcgdexPricing(tdCardList.map(c => c.id));
+    cards = tdCardList.map(card => {
+      const p = tdPricing.get(card.id) || {raw: null, source: null};
+      if(p.raw) hasPrices = true;
+      return {
+        name: card.name, number: card.localId,
+        image: card.image ? card.image + '/high.webp' : null,
+        raw: p.raw, psa10: null, rarity: null, types: null,
+        supertype: null, subtypes: null, variants: null, priceSource: p.source
+      };
+    });
   }
 
   if(applySetPriceOverrides(set.id, cards)) hasPrices = true;
@@ -7846,8 +7897,8 @@ async function fetchCardsForSet(set){
   // gewoon niet cachen, zodat de volgende keer opnieuw geprobeerd wordt.
   if(cards.length > 0){
     try{
-      localStorage.setItem('pkc_setdetail_v7_' + set.id, JSON.stringify(result));
-      localStorage.setItem('pkc_setdetail_v7_' + set.id + '_ts', String(Date.now()));
+      localStorage.setItem('pkc_setdetail_v8_' + set.id, JSON.stringify(result));
+      localStorage.setItem('pkc_setdetail_v8_' + set.id + '_ts', String(Date.now()));
     }catch(e){}
   }
   return result;
@@ -7855,31 +7906,46 @@ async function fetchCardsForSet(set){
 
 // Japanse tegenhanger van fetchCardsForSet() hierboven -- TCGdex is hier de
 // ENIGE bron (geen pokemontcg.io-primaire poging, die kent geen Japanse
-// sets), dus geen prijsdata (hasPrices altijd false, net als bij de Engelse
-// TCGdex-terugval). renderSetDetailGrid()/openCatalogCard() hieronder kunnen
-// dit resultaat al ongewijzigd tonen -- die code gaat al netjes om met
-// hasPrices:false uit de bestaande Engelse terugvalroute.
+// sets). BIJGEWERKT aug. 2026: eerder dachten we dat Japanse kaarten
+// structureel geen prijsdata hadden (hasPrices altijd false) -- bleek niet
+// te kloppen. TCGdex's per-kaart detailendpoint levert wél gratis een
+// Cardmarket-prijsblok mee (ontdekt via live onderzoek: ~96% van recent
+// gecheckte Japanse kaarten had een echte prijs), alleen de lijst-endpoint
+// die we hier gebruikten (/cards?id=...*) laat dat veld weg. Verrijk daarom
+// elke kaart met een extra per-kaart ophaling (enrichTcgdexPricing(),
+// dezelfde gebatchte aanpak als fillImportPhotos() elders in dit bestand).
 async function fetchCardsForSetJa(set){
   try{
-    const cached = localStorage.getItem('pkc_setdetail_ja_v1_' + set.id);
-    const cachedTs = localStorage.getItem('pkc_setdetail_ja_v1_' + set.id + '_ts');
+    const cached = localStorage.getItem('pkc_setdetail_ja_v2_' + set.id);
+    const cachedTs = localStorage.getItem('pkc_setdetail_ja_v2_' + set.id + '_ts');
     if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 24*60*60*1000){
       return JSON.parse(cached);
     }
   }catch(e){}
   let cards = [];
+  let hasPrices = false;
   const list = await tcgdexQueryJa('/cards', { id: set.id + '*', 'pagination:itemsPerPage': '250' });
-  cards = (Array.isArray(list) ? list : []).map(card => ({
-    name: card.name, number: card.localId,
-    image: card.image ? card.image + '/high.webp' : null,
-    raw: null, psa10: null, rarity: null, types: null,
-    supertype: null, subtypes: null, variants: null
-  }));
-  const result = { cards, hasPrices: false };
-  try{
-    localStorage.setItem('pkc_setdetail_ja_v1_' + set.id, JSON.stringify(result));
-    localStorage.setItem('pkc_setdetail_ja_v1_' + set.id + '_ts', String(Date.now()));
-  }catch(e){}
+  const cardList = Array.isArray(list) ? list : [];
+  const pricing = await enrichTcgdexPricing(cardList.map(c => c.id), tcgdexQueryJa);
+  cards = cardList.map(card => {
+    const p = pricing.get(card.id) || {raw: null, source: null};
+    if(p.raw) hasPrices = true;
+    return {
+      name: card.name, number: card.localId,
+      image: card.image ? card.image + '/high.webp' : null,
+      raw: p.raw, psa10: null, rarity: null, types: null,
+      supertype: null, subtypes: null, variants: null, priceSource: p.source
+    };
+  });
+  const result = { cards, hasPrices };
+  // Nooit een lege lijst 24 uur cachen -- zelfde reden als fetchCardsForSet()
+  // hierboven: een tijdelijke hapering zou anders een lege set "vastvriezen".
+  if(cards.length > 0){
+    try{
+      localStorage.setItem('pkc_setdetail_ja_v2_' + set.id, JSON.stringify(result));
+      localStorage.setItem('pkc_setdetail_ja_v2_' + set.id + '_ts', String(Date.now()));
+    }catch(e){}
+  }
   return result;
 }
 
@@ -9216,16 +9282,24 @@ async function searchCardsViaAPIJa(q){
   // itemsPerPage was 15, zelfde reden als tcgdexSearchForHome()/searchCardsViaAPI()
   // hierboven: te weinig voor een naam die in veel sets/rariteiten voorkomt.
   const list = await tcgdexQueryJa('/cards', { name: 'like:' + query, 'pagination:itemsPerPage': '250' });
-  return (Array.isArray(list) ? list : []).map(card => {
+  const cardList = Array.isArray(list) ? list : [];
+  // Prijs verrijken kost 1 extra ophaling per kaart (zie enrichTcgdexPricing()
+  // hierboven) -- bij een naam als "Pikachu" die in tientallen sets voorkomt
+  // zou dat voor ALLE resultaten de zoekopdracht merkbaar traag maken. Beperk
+  // daarom tot de eerste 60 resultaten; de rest blijft zoals voorheen zonder
+  // prijs (geen regressie, gewoon niet extra verbeterd).
+  const pricing = await enrichTcgdexPricing(cardList.slice(0, 60).map(c => c.id), tcgdexQueryJa);
+  return cardList.map(card => {
     const derivedSetId = (card.id && card.localId) ? card.id.slice(0, card.id.length - card.localId.length - 1) : '';
+    const p = pricing.get(card.id) || {raw: null, source: null};
     return {
       name: card.name,
       set: derivedSetId,
       number: card.localId,
       rarity: null,
       image: card.image ? card.image + '/high.webp' : null,
-      raw_usd: null,
-      source: null
+      raw_usd: p.raw,
+      source: p.source
     };
   });
 }
