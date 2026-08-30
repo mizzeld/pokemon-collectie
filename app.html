@@ -2334,7 +2334,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     <div class="jg-section-head">
       <p class="jg-eyebrow">Reken het na</p>
       <h3 class="jg-h2">Is een doos de moeite waard?</h3>
-      <p>Vul in wat je koopt (los pack, bundel, ETB of hele box) en welke kaart je hoopt te pullen. Kies eerst de set, dan de rariteit — voor bijna 30 sets gebruiken we echte, bekende pull-rates (bron: thepricedex.com) i.p.v. een gok. Staat jouw set er niet bij, of wil je zelf rekenen? Vul dan gewoon zelf een kans en waarde in.</p>
+      <p>Kies eerst een set — je ziet dan meteen de pull rates voor élke rariteit uit die set, ook als je zelf nog niet weet welke rariteit of kaart je zoekt of wat 'm waard is (bron: thepricedex.com, voor bijna 30 sets). Wil je ook precies uitrekenen of jóuw aankoop de moeite waard is? Kies daaronder de rariteit en vul in wat je koopt.</p>
     </div>
     <div class="jg-budget-panel">
       <div class="formrow">
@@ -2344,8 +2344,9 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
         </select>
       </div>
       <div class="jg-set-preview" id="boxCalcSetPreview"></div>
+      <div id="boxCalcTiersTable"></div>
       <div class="formrow" id="boxCalcTierRow" style="display:none;">
-        <label>Welke rariteit hoop je te pullen?</label>
+        <label>Reken uit voor een specifieke rariteit (optioneel)</label>
         <select id="boxCalcCardPicker">
           <option value="">— Kies een rariteit —</option>
         </select>
@@ -11437,6 +11438,7 @@ async function ensurePullRateSetLogos(){
       boxCalcSetPicker.appendChild(opt);
     });
 
+    const boxCalcTiersTable = document.getElementById('boxCalcTiersTable');
     boxCalcSetPicker.onchange = () => {
       boxCalcPicker.innerHTML = '<option value="">— Kies een rariteit —</option>';
       const set = PULL_RATE_SETS[boxCalcSetPicker.value];
@@ -11448,6 +11450,10 @@ async function ensurePullRateSetLogos(){
           boxCalcPicker.appendChild(opt);
         });
         boxCalcTierRow.style.display = '';
+        // Meteen ALLE rariteiten tonen -- niet pas na het kiezen van er één --
+        // zodat je ook zonder al te weten welke rariteit/kaart je zoekt of wat
+        // 'm waard is, meteen iets zinnigs ziet (rechtstreeks aangevraagd, aug. 2026).
+        if(boxCalcTiersTable) boxCalcTiersTable.innerHTML = pullRateTableHTML(set);
         if(boxCalcSetPreview){
           ensurePullRateSetLogos().then(logos => {
             const url = logos[boxCalcSetPicker.value];
@@ -11457,6 +11463,7 @@ async function ensurePullRateSetLogos(){
       } else {
         boxCalcTierRow.style.display = 'none';
         if(boxCalcSetPreview) boxCalcSetPreview.innerHTML = '';
+        if(boxCalcTiersTable) boxCalcTiersTable.innerHTML = '';
       }
       boxCalcHasSourcedOdds = false;
       boxCalcSourceNote.textContent = '';
@@ -11513,6 +11520,27 @@ async function ensurePullRateSetLogos(){
   // het verwachte aantal per standaard doos van 36 packs (pure rekensom uit die
   // kans, geen extra aanname).
   const PULL_RATES_PACKS_PER_BOX = 36;
+
+  // Gedeeld door de inline tabel (direct onder de setkeuze in de rekenmachine)
+  // en de aparte "Bekijk alle pull rates per set"-overlay hieronder -- zelfde
+  // tabel, twee plekken, geen dubbele opmaak-logica om uit elkaar te laten lopen.
+  function pullRateTableHTML(set){
+    const rows = set.tiers.map(tier => {
+      const perBox = PULL_RATES_PACKS_PER_BOX / tier.odds;
+      return `<tr>
+        <td>${escapeHtml(tier.label)}${tier.card ? `<div class="pr-chase">chase card: ${escapeHtml(tier.card)}</div>` : ''}</td>
+        <td>1 op ${tier.odds} packs</td>
+        <td>${perBox >= 1 ? perBox.toFixed(1) : perBox.toFixed(3)} per doos</td>
+        <td>${tier.cardValue != null ? fmt(tier.cardValue) : '—'}</td>
+      </tr>`;
+    }).join('');
+    return `
+      <table class="pr-table">
+        <thead><tr><th>Rariteit</th><th>Kans per pack</th><th>Per doos (${PULL_RATES_PACKS_PER_BOX} packs)</th><th>Kaartwaarde</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="pr-note">Bron: thepricedex.com, bijgewerkt ${PULL_RATE_SOURCE_DATE}. "Per doos" is een pure rekensom (${PULL_RATES_PACKS_PER_BOX} packs × kans) uitgaande van een standaard doos van ${PULL_RATES_PACKS_PER_BOX} packs -- sommige producten (ETB's, speciale bundels) wijken hiervan af. "Kaartwaarde" staat alleen bij rariteiten met één specifieke bekende chase card (bijv. een illustration rare van één personage) -- bij een algemene rariteit (bijv. "Ultra Rare") verschilt de waarde te veel per kaart om één bedrag te geven.</p>`;
+  }
   const openPullRatesBtn = document.getElementById('openPullRatesBtn');
   const pullRatesOverlay = document.getElementById('pullRatesOverlay');
   const pullRatesBody = document.getElementById('pullRatesBody');
@@ -11543,23 +11571,11 @@ async function ensurePullRateSetLogos(){
     ensurePullRateSetLogos().then(logos => {
       const url = logos[key];
       const img = url ? logoImgHTML(url, set.name) : '';
-      const rows = set.tiers.map(tier => {
-        const perBox = PULL_RATES_PACKS_PER_BOX / tier.odds;
-        return `<tr>
-          <td>${escapeHtml(tier.label)}${tier.card ? `<div class="pr-chase">chase card: ${escapeHtml(tier.card)}${tier.cardValue != null ? ` (~${fmt(tier.cardValue)})` : ''}</div>` : ''}</td>
-          <td>1 op ${tier.odds} packs</td>
-          <td>${perBox >= 1 ? perBox.toFixed(1) : perBox.toFixed(3)} per doos</td>
-        </tr>`;
-      }).join('');
       pullRatesBody.innerHTML = `
         <button type="button" class="pr-back" id="prBackBtn">‹ Terug naar alle sets</button>
         <div class="pr-detail">
           <div class="pr-detail-head">${img}<h4>${escapeHtml(set.name)}</h4></div>
-          <table class="pr-table">
-            <thead><tr><th>Rariteit</th><th>Kans per pack</th><th>Per doos (${PULL_RATES_PACKS_PER_BOX} packs)</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <p class="pr-note">Bron: thepricedex.com, bijgewerkt ${PULL_RATE_SOURCE_DATE}. "Per doos" is een pure rekensom (${PULL_RATES_PACKS_PER_BOX} packs × kans) uitgaande van een standaard doos van ${PULL_RATES_PACKS_PER_BOX} packs -- sommige producten (ETB's, speciale bundels) wijken hiervan af.</p>
+          ${pullRateTableHTML(set)}
         </div>`;
       document.getElementById('prBackBtn').onclick = renderPullRatesGrid;
     });
