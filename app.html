@@ -3485,9 +3485,34 @@ function logoImgRetry(img){
 // renderSetGrid()/jgComputeSetValues()/etc. don't need to know which source they got.
 // images.logo blijft bewust de KALE URL (zie logoImgHTML hierboven) i.p.v.
 // hier al een gegokte extensie vast te plakken.
+// TCGdex's "/sets" lijst bevat NIET alleen echte fysieke kaartensets, maar ook
+// de losse "Pokémon TCG Pocket"-app-sets (bijv. "Genetic Apex", "Eevee Grove",
+// "Extradimensional Crisis") -- een heel ander, puur digitaal spel zonder
+// tastbare kaarten, zonder marktprijs, en vaak zelfs zonder logo in TCGdex's
+// data. Die hoorden hier nooit tussen te staan (ontdekt aug. 2026: zodra
+// pokemontcg.io even faalde en de app op TCGdex terugviel, verscheen dit hele
+// rijtje met kapotte/lege tegels tussen de echte sets). TCGdex groepeert ze
+// zelf al netjes onder de aparte "tcgp"-serie, dus die lijst vragen we apart
+// op en gebruiken 'm als uitsluitingslijst. Blijft dit om wat voor reden ook
+// mislukken, dan tonen we liever alle sets (incl. een paar rommelige Pocket-
+// tegels) dan he-le-maal niks -- vandaar de lege fallback-set bij een fout.
+let tcgdexPocketSetIdsCache = null;
+async function tcgdexPocketSetIds(){
+  if(tcgdexPocketSetIdsCache) return tcgdexPocketSetIdsCache;
+  try{
+    const tcgp = await tcgdexQuery('/series/tcgp', {});
+    tcgdexPocketSetIdsCache = new Set((tcgp && Array.isArray(tcgp.sets)) ? tcgp.sets.map(s => s.id) : []);
+  }catch(e){
+    tcgdexPocketSetIdsCache = new Set();
+  }
+  return tcgdexPocketSetIdsCache;
+}
 async function tcgdexFetchSets(){
   const list = await tcgdexQuery('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
-  return (Array.isArray(list) ? list : []).map(s => ({
+  const pocketIds = await tcgdexPocketSetIds();
+  return (Array.isArray(list) ? list : [])
+    .filter(s => !pocketIds.has(s.id))
+    .map(s => ({
     id: s.id, name: s.name,
     // TCGdex's "logo" (het volledige setplaatje) staat er lang niet voor elke
     // set in, vooral Japanse sets missen 'm vaker dan Engelse. "symbol" (het
@@ -6361,33 +6386,45 @@ try{
 let allSets = null; // in-memory cache once loaded this session
 async function fetchAllSets(){
   if(allSets) return allSets;
+  // BUG (gevonden aug. 2026, vierde ronde): deze cache sloeg alleen OP dat er
+  // een lijst was, niet WELKE bron 'm leverde. Als pokemontcg.io een keer alle
+  // 8 pogingen verloor (zeldzaam maar met de gemeten ~60%-faalkans over een
+  // dag beslist geen uitzondering) viel dit terug op TCGdex -- en die
+  // terugval-lijst werd vervolgens 24 UUR lang als "de" setlijst gecached,
+  // inclusief TCGdex's Pokémon TCG Pocket-sets (zie tcgdexFetchSets()
+  // hierboven) en zonder een enkele live marktprijs, ook lang nadat
+  // pokemontcg.io zelf allang weer bereikbaar was. Nu staat de bron zelf ook
+  // in de cache: een 'ptcgio'-resultaat mag echt 24u meegaan, maar een
+  // 'tcgdex-fallback'-resultaat wordt na 10 minuten alweer opnieuw geprobeerd
+  // bij pokemontcg.io, zodat zo'n eenmalige hapering vanzelf snel herstelt in
+  // plaats van een hele dag lang de verkeerde sets te tonen.
   try{
-    // v2 + 24u i.p.v. v1 + 7 dagen (aug. 2026): pokemontcg.io bleek voorlopige/
-    // aankondigings-sets (o.a. van deze "Mega Evolution"-reeks) later stilletjes
-    // te hernoemen of te verwijderen -- een 7 dagen oude cache liet dan sets zien
-    // die niet meer echt bestaan (geen logo, geen kaarten, soms zelfs geen
-    // reactie meer op een tik). De v2-sleutel forceert voor iedereen één verse
-    // ophaling, en 24u i.p.v. 7 dagen laat zoiets voortaan vanzelf sneller herstellen.
-    const cached = localStorage.getItem('pkc_ptcgio_sets_v2');
-    const cachedTs = localStorage.getItem('pkc_ptcgio_sets_v2_ts');
-    if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 24*60*60*1000){
+    const cached = localStorage.getItem('pkc_ptcgio_sets_v3');
+    const cachedTs = localStorage.getItem('pkc_ptcgio_sets_v3_ts');
+    const cachedSrc = localStorage.getItem('pkc_ptcgio_sets_v3_src') || 'ptcgio'; // oudere cache-entries (voor deze fix) hadden geen src-veld -- die waren altijd een geslaagde ptcgio-ophaling, dus 'ptcgio' is hier het correcte, veilige default.
+    const maxAge = cachedSrc === 'ptcgio' ? 24*60*60*1000 : 10*60*1000;
+    if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < maxAge){
       allSets = JSON.parse(cached);
       return allSets;
     }
   }catch(e){}
+  let source;
   try{
     const json = await ptcgioFetch(PTCGIO_BASE + '/sets?orderBy=-releaseDate&pageSize=250');
     // lang:'en' getagd zodat openSetDetail()/fetchCardsForSet() weten dat dit
     // een Engelse (pokemontcg.io) set is -- alleen relevant sinds Japanse sets
     // via fetchAllSetsJa() ernaast bestaan, zie die functie hieronder.
     allSets = (Array.isArray(json.data) ? json.data : []).map(s => ({...s, lang: 'en'}));
+    source = 'ptcgio';
   }catch(primaryErr){
     console.warn('pokemontcg.io setlijst mislukt, val terug op TCGdex:', primaryErr.message||primaryErr);
     allSets = await tcgdexFetchSets(); // let this throw further up if TCGdex is also unreachable
+    source = 'tcgdex-fallback';
   }
   try{
-    localStorage.setItem('pkc_ptcgio_sets_v2', JSON.stringify(allSets));
-    localStorage.setItem('pkc_ptcgio_sets_v2_ts', String(Date.now()));
+    localStorage.setItem('pkc_ptcgio_sets_v3', JSON.stringify(allSets));
+    localStorage.setItem('pkc_ptcgio_sets_v3_ts', String(Date.now()));
+    localStorage.setItem('pkc_ptcgio_sets_v3_src', source);
   }catch(e){}
   return allSets;
 }
@@ -6846,15 +6883,19 @@ async function fetchAllSetsJa(){
     // eerste keus) -- zonder ophoging zou iedereen tot 7 dagen op een oude
     // cache met de vorige (kapotte/onvolledige) data blijven zitten i.p.v.
     // de fix meteen te zien.
-    const cached = localStorage.getItem('pkc_tcgdex_ja_sets_v5');
-    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_v5_ts');
+    const cached = localStorage.getItem('pkc_tcgdex_ja_sets_v6');
+    const cachedTs = localStorage.getItem('pkc_tcgdex_ja_sets_v6_ts');
     if(cached && cachedTs && (Date.now() - parseInt(cachedTs,10)) < 7*24*60*60*1000){
       allSetsJa = JSON.parse(cached);
       return allSetsJa;
     }
   }catch(e){}
   const list = await tcgdexQueryJa('/sets', { 'sort:field': 'releaseDate', 'sort:order': 'DESC', 'pagination:itemsPerPage': '250' });
-  allSetsJa = (Array.isArray(list) ? list : []).map(s => ({
+  // Zelfde Pokémon TCG Pocket-uitsluiting als tcgdexFetchSets() hierboven --
+  // set-ID's zijn universeel gelijk over TCGdex's taalversies heen, dus de
+  // eerder (EN) opgehaalde id-lijst is ook hier correct.
+  const pocketIdsJa = await tcgdexPocketSetIds();
+  allSetsJa = (Array.isArray(list) ? list : []).filter(s => !pocketIdsJa.has(s.id)).map(s => ({
     id: s.id, name: s.name,
     // TCGdex's "logo" (het volledige setplaatje) staat er lang niet voor elke
     // set in, vooral Japanse sets missen 'm vaker dan Engelse. "symbol" (het
@@ -6865,8 +6906,8 @@ async function fetchAllSetsJa(){
     lang: 'ja'
   }));
   try{
-    localStorage.setItem('pkc_tcgdex_ja_sets_v5', JSON.stringify(allSetsJa));
-    localStorage.setItem('pkc_tcgdex_ja_sets_v5_ts', String(Date.now()));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v6', JSON.stringify(allSetsJa));
+    localStorage.setItem('pkc_tcgdex_ja_sets_v6_ts', String(Date.now()));
   }catch(e){}
   return allSetsJa;
 }
