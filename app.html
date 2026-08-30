@@ -1994,6 +1994,29 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
   #jachtgidsMain .jg-head-txt{ flex:1; min-width:0; }
   #jachtgidsMain .jg-head-txt h4{ margin:6px 0 2px; }
 
+  #jachtgidsMain .jg-upcoming-list{
+    background:var(--jg-panel); border:1px solid var(--jg-line); border-radius:18px; padding:8px;
+  }
+  #jachtgidsMain .jg-upcoming-row{
+    display:flex; align-items:center; gap:14px; padding:14px; border-radius:12px;
+  }
+  #jachtgidsMain .jg-upcoming-row + .jg-upcoming-row{ border-top:1px solid var(--jg-line); }
+  #jachtgidsMain .jg-upcoming-logo{
+    flex:0 0 84px; height:34px; display:flex; align-items:center; justify-content:center;
+  }
+  #jachtgidsMain .jg-upcoming-logo img{ max-width:100%; max-height:100%; object-fit:contain; }
+  #jachtgidsMain .jg-upcoming-logo .jg-upcoming-logo-ph{
+    font-family: Georgia, serif; font-size:13px; color:var(--jg-ink); text-align:center;
+  }
+  #jachtgidsMain .jg-upcoming-info{ flex:1; min-width:0; }
+  #jachtgidsMain .jg-upcoming-info h4{ font-family:Georgia, serif; font-size:15.5px; margin:0 0 2px; }
+  #jachtgidsMain .jg-upcoming-date{ font-size:12px; color:var(--jg-muted); font-family:ui-monospace, monospace; }
+  #jachtgidsMain .jg-upcoming-badge{
+    flex:0 0 auto; font-size:11.5px; font-weight:700; color:var(--jg-gold);
+    background:var(--jg-panel-2); border:1px solid var(--jg-gold-dim); padding:5px 11px; border-radius:999px;
+    white-space:nowrap;
+  }
+
   #jachtgidsMain .jg-budget-panel{
     background:var(--jg-panel);
     border:1px solid var(--jg-line);
@@ -2360,6 +2383,15 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       <div id="boxCalcResult" style="margin-top:14px;"></div>
     </div>
     <button type="button" class="analyzebtn" id="openPullRatesBtn" style="width:100%; margin-top:12px; background:transparent; border:1px solid var(--jg-gold-dim); color:var(--jg-gold);">📊 Bekijk alle pull rates per set</button>
+  </div>
+
+  <div class="jg-section" id="jgUpcoming">
+    <div class="jg-section-head">
+      <p class="jg-eyebrow">Plan vooruit</p>
+      <h3 class="jg-h2">Binnenkort uit</h3>
+      <p>Al aangekondigde sets die nog niet zijn uitgekomen, op volgorde van releasedatum — zodat je op tijd weet wanneer je moet sparen of pre-orderen. Alleen sets die de kaartendatabase zelf al kent met een echte datum; net aangekondigde sets zonder datum staan hier vaak pas later bij.</p>
+    </div>
+    <div id="jgUpcomingList"><p style="color:var(--jg-muted); font-size:13px;">Laden…</p></div>
   </div>
 
   <div class="jg-section">
@@ -6073,7 +6105,7 @@ function switchView(view){
   else if(wish) renderWishlist();
   else if(trade) renderRuilen();
   else if(coll) render();
-  else if(hunt){ jgEnsureSetValues(); renderLiveSignals(); }
+  else if(hunt){ jgEnsureSetValues(); renderLiveSignals(); renderUpcomingSets(); }
   else if(packs) renderPacksPage();
   else if(shop) renderShop();
   else if(dex) renderPokedexPage();
@@ -9927,6 +9959,81 @@ function renderWishlist(){
   grid.querySelectorAll('[data-remove]').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); removeFromWishlist(btn.dataset.remove); };
   });
+  // Tikken op de tegel zelf opende voorheen niets -- de hele reden om een
+  // kaart op je verlanglijst te zetten is 'm ergens kunnen KOPEN, dus dat
+  // hoorde hier eigenlijk altijd al te zitten (rechtstreeks aangevraagd, aug. 2026).
+  grid.querySelectorAll('.slot[data-wid]').forEach(el=>{
+    el.onclick = ()=> openWishlistDetail(el.dataset.wid);
+  });
+}
+
+// Verlanglijst-tegenhanger van openSearchDetail(): dezelfde gedeelde
+// detailOverlay/detailSheet, maar dan met "koop 'm ergens" vooropgesteld
+// (dat is immers precies waarom een kaart op de verlanglijst staat) plus een
+// snelle weg naar "ik heb 'm nu toch gekocht" (verplaatst 'm naar je echte
+// collectie) en "toch niet meer nodig" (verwijderen).
+function openWishlistDetail(id){
+  const w = wishlist.find(x => x.id === id);
+  if(!w) return;
+  const links = sourceLinks({ name: w.name, set: w.set || '' });
+
+  document.getElementById('detailSheet').innerHTML = `
+    <div class="grabber"></div>
+    <div class="sheet-head">
+      <div class="img" style="position:relative">
+        <div class="ph">${escapeHtml(w.name)}</div>
+        ${w.image ? `<img src="${escapeHtml(w.image)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff" onerror="this.style.display='none'">` : ''}
+      </div>
+      <div class="meta">
+        <h2>${escapeHtml(w.name)}</h2>
+        <div class="setline mono">${escapeHtml(w.set || '')}</div>
+      </div>
+    </div>
+    <div class="pricecards">
+      <div class="pricecard"><div class="l">Raw (bij toevoegen)</div><div class="v mono">${w.raw ? fmt(w.raw) : '—'}</div></div>
+    </div>
+    ${w.raw ? `<div class="ladder-wrap"><div class="ladder-note">Dit is de prijs van toen je 'm op je verlanglijst zette (${escapeHtml(w.added||'')}) -- gebruik de knoppen hieronder voor de actuele prijs.</div></div>` : ''}
+    <div class="ladder-wrap" style="padding-top:0;">
+      <div class="ladder-title">Ergens kopen</div>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <a href="${links.ebay}" target="_blank" rel="noopener" class="addphotobtn" style="flex:1; text-align:center; text-decoration:none;">eBay</a>
+        <a href="${links.pricecharting}" target="_blank" rel="noopener" class="addphotobtn" style="flex:1; text-align:center; text-decoration:none;">PriceCharting</a>
+        <a href="${links.tcgplayer}" target="_blank" rel="noopener" class="addphotobtn" style="flex:1; text-align:center; text-decoration:none;">TCGplayer</a>
+      </div>
+      <button class="addcollectbtn" id="wishToCollection">📦 Heb 'm gekocht -- zet in mijn collectie</button>
+      <button class="addcollectbtn" id="wishRemoveBtn" style="background:transparent; border:1px solid var(--line); color:var(--red); margin-top:8px;">✕ Van verlanglijst halen</button>
+    </div>
+    <div class="closebar"><button class="closebtn" id="closeDetail">Sluiten</button></div>
+  `;
+  document.getElementById('detailOverlay').classList.add('show');
+  document.getElementById('closeDetail').onclick = closeDetail;
+
+  document.getElementById('wishToCollection').onclick = async ()=>{
+    const raw = w.raw || 0;
+    collection.unshift({
+      id: 'user-' + Date.now(),
+      page: 'nieuw',
+      name: w.name,
+      set: w.set || '',
+      raw: raw,
+      psa10: raw ? raw * 4 : 0,
+      psa9: null,
+      photo: w.image || null,
+      imgRef: null,
+      note: '',
+      manual: true,
+      added: new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}),
+      addedISO: new Date().toISOString().slice(0,10)
+    });
+    await saveCollection();
+    await removeFromWishlist(w.id);
+    refreshNewCardPrice(collection[0]); // fire-and-forget: haalt een echte actuele prijs op i.p.v. de oude verlanglijst-prijs
+    closeDetail();
+  };
+  document.getElementById('wishRemoveBtn').onclick = async ()=>{
+    await removeFromWishlist(w.id);
+    closeDetail();
+  };
 }
 
 /* ============================= RUILEN (trade stock) ============================= */
@@ -11602,6 +11709,66 @@ async function ensurePullRateSetLogos(){
   if(closePullRatesBtn && pullRatesOverlay){
     closePullRatesBtn.onclick = () => pullRatesOverlay.classList.remove('show');
   }
+
+  // "Binnenkort uit" -- gebruikt dezelfde setlijst als de rest van de app
+  // (fetchAllSets(), pokemontcg.io met TCGdex-terugval), simpelweg gefilterd
+  // op een releasedatum die nog in de toekomst ligt. Geen losse, met de hand
+  // bijgehouden lijst met aankomende sets (die zou vrijwel meteen verouderen)
+  // -- dus soms leeg als een set nog te vers aangekondigd is om al met een
+  // datum in de database te staan, en dat is dan ook eerlijk zo.
+  function formatUpcomingCountdown(days){
+    if(days <= 0) return 'vandaag';
+    if(days === 1) return 'morgen';
+    if(days < 14) return `over ${days} dagen`;
+    if(days < 60) return `over ${Math.round(days/7)} weken`;
+    return `over ${Math.round(days/30)} maanden`;
+  }
+  function formatUpcomingDate(releaseDate){
+    // releaseDate komt als "YYYY/MM/DD" van zowel pokemontcg.io als TCGdex.
+    const [y,m,d] = releaseDate.split('/').map(Number);
+    if(!y || !m || !d) return releaseDate;
+    const maanden = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+    return `${d} ${maanden[m-1]} ${y}`;
+  }
+  async function renderUpcomingSets(){
+    const list = document.getElementById('jgUpcomingList');
+    if(!list) return;
+    try{
+      const sets = await fetchAllSets();
+      const today = new Date(); today.setHours(0,0,0,0);
+      const upcoming = sets
+        .map(s => {
+          if(!s.releaseDate) return null;
+          const [y,m,d] = s.releaseDate.split('/').map(Number);
+          if(!y || !m || !d) return null;
+          const date = new Date(y, m-1, d);
+          return { set: s, date };
+        })
+        .filter(x => x && x.date > today)
+        .sort((a,b) => a.date - b.date);
+
+      if(upcoming.length === 0){
+        list.innerHTML = `<p style="color:var(--jg-muted); font-size:13px;">Geen aangekondigde sets bekend die nog niet zijn uitgekomen — check later nog eens, dit wordt vaak pas dicht bij de releasedatum toegevoegd.</p>`;
+        return;
+      }
+      list.innerHTML = `<div class="jg-upcoming-list">${upcoming.map(({set, date}) => {
+        const days = Math.ceil((date - today) / (1000*60*60*24));
+        const logo = set.images && set.images.logo;
+        return `
+          <div class="jg-upcoming-row">
+            <div class="jg-upcoming-logo">${logo ? logoImgHTML(logo, set.name) : `<div class="jg-upcoming-logo-ph">${escapeHtml(set.name)}</div>`}</div>
+            <div class="jg-upcoming-info">
+              <h4>${escapeHtml(set.name)}</h4>
+              <div class="jg-upcoming-date">${formatUpcomingDate(set.releaseDate)}</div>
+            </div>
+            <div class="jg-upcoming-badge">${formatUpcomingCountdown(days)}</div>
+          </div>`;
+      }).join('')}</div>`;
+    }catch(e){
+      list.innerHTML = `<p style="color:var(--red); font-size:13px;">Kon de setlijst niet laden: ${escapeHtml(e.message||e)}</p>`;
+    }
+  }
+  window.renderUpcomingSets = renderUpcomingSets; // switchView() (buiten deze IIFE) roept dit aan zodra de Jachtgids-pagina opent
 })();
 
 /* ============================= INIT ============================= */
