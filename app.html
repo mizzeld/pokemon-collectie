@@ -3531,7 +3531,12 @@ async function tcgdexFetchSets(){
 // and adding the card to your collection still triggers a real
 // PokemonPriceTracker price lookup regardless of which source found the photo.
 async function tcgdexSearchForHome(q, setId){
-  const params = { name: 'like:' + q, 'pagination:itemsPerPage': '6' };
+  // itemsPerPage was 6 -- veel te weinig zodra een naam in meerdere sets en
+  // rariteiten voorkomt (bijv. "Charizard": tientallen kaarten). 250 is
+  // TCGdex's eigen maximum per pagina, dus dit toont gewoon alles wat er is
+  // (rechtstreeks aangevraagd, aug. 2026: "alle Charizard-kaarten zien, maakt
+  // niet uit welke zeldzaamheid").
+  const params = { name: 'like:' + q, 'pagination:itemsPerPage': '250' };
   if(setId) params.id = setId + '*';
   const list = await tcgdexQuery('/cards', params);
   return (Array.isArray(list) ? list : []).map(card => {
@@ -9134,7 +9139,12 @@ async function searchCardsViaAPI(q){
   try{
     let qExpr = 'name:"' + q + '*"';
     if(selectedSet) qExpr += ' set.id:' + selectedSet.id;
-    const params = new URLSearchParams({ q: qExpr, pageSize: '6', orderBy: '-set.releaseDate' });
+    // pageSize was 6 -- een naam als "Charizard" bestaat als tientallen
+    // kaarten verspreid over vele sets en zeldzaamheden, en die 6 pakte
+    // toevallig alleen de nieuwste paar (door orderBy hieronder). 250 is
+    // pokemontcg.io's eigen maximum per pagina, dus dit toont voortaan alles
+    // wat er is, ongeacht zeldzaamheid (rechtstreeks aangevraagd, aug. 2026).
+    const params = new URLSearchParams({ q: qExpr, pageSize: '250', orderBy: '-set.releaseDate' });
     const json = await ptcgioFetch(PTCGIO_BASE + '/cards?' + params.toString());
     const list = Array.isArray(json.data) ? json.data : [];
     return list.map(card => {
@@ -9171,7 +9181,9 @@ async function searchCardsViaAPIJa(q){
     const ja = translateEnglishQueryToJapanese(q);
     if(ja) query = ja;
   }
-  const list = await tcgdexQueryJa('/cards', { name: 'like:' + query, 'pagination:itemsPerPage': '15' });
+  // itemsPerPage was 15, zelfde reden als tcgdexSearchForHome()/searchCardsViaAPI()
+  // hierboven: te weinig voor een naam die in veel sets/rariteiten voorkomt.
+  const list = await tcgdexQueryJa('/cards', { name: 'like:' + query, 'pagination:itemsPerPage': '250' });
   return (Array.isArray(list) ? list : []).map(card => {
     const derivedSetId = (card.id && card.localId) ? card.id.slice(0, card.id.length - card.localId.length - 1) : '';
     return {
