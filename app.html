@@ -215,10 +215,28 @@ main{padding:14px 12px 8px;}
    van de tegel doorschijnen, zodat het in beide thema's klopt. */
 .slot .art img.setlogo{background:transparent;}
 .slot .art .placeholder{
-  position:absolute; inset:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  position:absolute; inset:0; width:100%; height:100%;
   font-family:'Oswald'; font-weight:600; font-size:9.5px; text-align:center; padding:6px; line-height:1.25;
   color:var(--placeholder-text); letter-spacing:.02em; z-index:0;
+  /* BUG (gevonden aug. 2026): de vorige regel zette hier zowel "display:flex"
+     als (om lange namen na 4 regels af te kappen) "display:-webkit-box" op
+     dezelfde class -- de laatste wint altijd, dus align-items/justify-content
+     (flexbox-only) deden niks meer en de naam kwam bovenin i.p.v. gecentreerd
+     te staan. -webkit-box-pack/-webkit-box-align zijn het -webkit-box-
+     equivalent van diezelfde centrering, dus die gebruiken i.p.v. de
+     flexbox-eigenschappen. */
   display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;
+  -webkit-box-pack:center; -webkit-box-align:center;
+}
+/* Kaart heeft (nog) geen foto in de bron zelf -- dit gebeurt bij gloednieuwe
+   Japanse sets waarvan de community-scans bij TCGdex nog niet zijn geüpload.
+   Duidelijk onderscheid van "iets is stuk": een klein label onderin de tegel
+   i.p.v. een lege/zwarte vlek die als bug oogt. */
+.slot .art .photo-pending{
+  position:absolute; left:4px; right:4px; bottom:4px; z-index:2;
+  background:var(--panel); border:1px solid var(--line); border-radius:6px;
+  font-size:8.5px; font-weight:600; text-align:center; padding:3px 4px;
+  color:var(--placeholder-text); opacity:.85;
 }
 .recent-sales{display:flex; flex-direction:column; gap:2px;}
 .recent-sale-row{display:flex; justify-content:space-between; padding:5px 2px; font-size:12.5px; border-bottom:1px solid var(--line);}
@@ -8835,7 +8853,7 @@ function renderSetDetailGrid(){
     grid.style.display = '';
     grid.innerHTML = setDetailSortedCards.map((c,i) => hasPrices ? `
       <div class="slot" data-idx="${i}">
-        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div>`}</div>
+        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div><div class="photo-pending">📷 foto volgt</div>`}</div>
         <div class="foot">
           <div class="name">${escapeHtml(c.name)}</div>
           <div class="setline2 mono">${numberLine(c)}</div>
@@ -8846,7 +8864,7 @@ function renderSetDetailGrid(){
         </div>
       </div>` : `
       <div class="slot" data-idx="${i}">
-        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div>`}</div>
+        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div><div class="photo-pending">📷 foto volgt</div>`}</div>
         <div class="foot">
           <div class="name">${escapeHtml(c.name)}${jaEnNameHTML(c.name)}</div>
           <div class="setline2 mono">${numberLine(c)}</div>
