@@ -215,18 +215,25 @@ main{padding:14px 12px 8px;}
    van de tegel doorschijnen, zodat het in beide thema's klopt. */
 .slot .art img.setlogo{background:transparent;}
 .slot .art .placeholder{
-  position:absolute; inset:0; width:100%; height:100%;
-  font-family:'Oswald'; font-weight:600; font-size:9.5px; text-align:center; padding:6px; line-height:1.25;
-  color:var(--placeholder-text); letter-spacing:.02em; z-index:0;
-  /* BUG (gevonden aug. 2026): de vorige regel zette hier zowel "display:flex"
-     als (om lange namen na 4 regels af te kappen) "display:-webkit-box" op
-     dezelfde class -- de laatste wint altijd, dus align-items/justify-content
-     (flexbox-only) deden niks meer en de naam kwam bovenin i.p.v. gecentreerd
-     te staan. -webkit-box-pack/-webkit-box-align zijn het -webkit-box-
-     equivalent van diezelfde centrering, dus die gebruiken i.p.v. de
-     flexbox-eigenschappen. */
+  position:absolute; inset:0; width:100%; height:100%; padding:6px; z-index:0;
+  display:flex; align-items:center; justify-content:center;
+  /* BUG (gevonden aug. 2026, tweede poging): eerst stond hier zowel
+     "display:flex" als (om lange namen na 4 regels af te kappen)
+     "display:-webkit-box" op DEZELFDE div -- de laatste wint altijd, dus
+     align-items/justify-content deden niks en de naam kwam bovenin i.p.v.
+     gecentreerd te staan. Het "fixen" met -webkit-box-pack/-webkit-box-align
+     (het -webkit-box-equivalent van centreren) loste het NIET op -- in
+     echte Chrome (bevestigd via live screenshot) centreert -webkit-box de
+     inhoud gewoon niet zodra -webkit-line-clamp actief is, ondanks dat de
+     eigenschappen wel in het stylesheet staan. Enige echte oplossing: de
+     line-clamp-eigenschappen op een BINNENSTE <span> zetten (zie hieronder),
+     en deze buitenste div puur voor flexbox-centrering laten -- geen
+     conflicterende display-waarde meer op één element. */
+}
+.slot .art .placeholder span{
+  font-family:'Oswald'; font-weight:600; font-size:9.5px; text-align:center; line-height:1.25;
+  color:var(--placeholder-text); letter-spacing:.02em;
   display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;
-  -webkit-box-pack:center; -webkit-box-align:center;
 }
 /* Kaart heeft (nog) geen foto in de bron zelf -- dit gebeurt bij gloednieuwe
    Japanse sets waarvan de community-scans bij TCGdex nog niet zijn geüpload.
@@ -4823,8 +4830,8 @@ function cardSlot(c){
   const tier = tierOf(c);
   const src = c.photo; // only ever a real user photo now -- guessed CDN images were unreliable
   const art = src
-    ? `<div class="placeholder">${escapeHtml(c.name)}</div><img src="${escapeHtml(src)}" alt="${escapeHtml(c.name)}" onerror="this.style.display='none'">`
-    : `<div class="placeholder">${escapeHtml(c.name)}</div>`;
+    ? `<div class="placeholder"><span>${escapeHtml(c.name)}</span></div><img src="${escapeHtml(src)}" alt="${escapeHtml(c.name)}" onerror="this.style.display='none'">`
+    : `<div class="placeholder"><span>${escapeHtml(c.name)}</span></div>`;
   const gradeBadge = c.isGraded ? `<div class="gradebadge">${escapeHtml(c.gradingCompany||'Graded')} ${escapeHtml(c.grade||'')}</div>` : '';
   const qtyBadge = (c.qty && c.qty > 1) ? `<div class="qtybadge">×${c.qty}</div>` : '';
   const langBadge = c.lang === 'jp' ? `<div class="langbadge">JP</div>` : '';
@@ -6451,7 +6458,7 @@ async function runSearch(){
       return `
         <div class="slot" data-idx="${i}">
           <div class="art">
-            <div class="placeholder">${escapeHtml(c.name)}</div>
+            <div class="placeholder"><span>${escapeHtml(c.name)}</span></div>
             ${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="this.style.display='none'">` : ''}
           </div>
           <div class="foot">
@@ -7019,7 +7026,7 @@ function setSlotHTML(s){
   const logo = s.images && s.images.logo;
   return `
     <div class="slot" data-id="${escapeHtml(s.id)}">
-      <div class="art">${logo ? logoImgHTML(logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
+      <div class="art">${logo ? logoImgHTML(logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder"><span>${escapeHtml(s.name)}</span></div>`}</div>
       <div class="foot">
         <div class="name">${escapeHtml(s.name)}${jaEnSetNameHTML(s.name, 'style="display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px;"')}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
@@ -8009,7 +8016,7 @@ function renderPackSetGridList(sets){
   const filtered = filterVal ? sets.filter(s => s.name.toLowerCase().includes(filterVal) || (translateSetName(s.name)||'').toLowerCase().includes(filterVal)) : sets;
   grid.innerHTML = filtered.map(s => `
     <div class="slot" data-id="${escapeHtml(s.id)}">
-      <div class="art">${s.images && s.images.logo ? logoImgHTML(s.images.logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder">${escapeHtml(s.name)}</div>`}</div>
+      <div class="art">${s.images && s.images.logo ? logoImgHTML(s.images.logo, s.name, 'class="setlogo" style="object-fit:contain;padding:10px;"') : `<div class="placeholder"><span>${escapeHtml(s.name)}</span></div>`}</div>
       <div class="foot">
         <div class="name">${escapeHtml(s.name)}</div>
         <div class="setline2 mono">${escapeHtml(s.releaseDate||'')}</div>
@@ -8853,7 +8860,7 @@ function renderSetDetailGrid(){
     grid.style.display = '';
     grid.innerHTML = setDetailSortedCards.map((c,i) => hasPrices ? `
       <div class="slot" data-idx="${i}">
-        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div><div class="photo-pending">📷 foto volgt</div>`}</div>
+        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder"><span>${escapeHtml(c.name)}</span></div><div class="photo-pending">📷 foto volgt</div>`}</div>
         <div class="foot">
           <div class="name">${escapeHtml(c.name)}</div>
           <div class="setline2 mono">${numberLine(c)}</div>
@@ -8864,7 +8871,7 @@ function renderSetDetailGrid(){
         </div>
       </div>` : `
       <div class="slot" data-idx="${i}">
-        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder">${escapeHtml(c.name)}</div><div class="photo-pending">📷 foto volgt</div>`}</div>
+        <div class="art">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" onerror="if(!this.dataset.r){this.dataset.r='1';const s=this.src;this.src='';setTimeout(()=>{this.src=s;},600);}else{this.style.display='none';}">` : `<div class="placeholder"><span>${escapeHtml(c.name)}</span></div><div class="photo-pending">📷 foto volgt</div>`}</div>
         <div class="foot">
           <div class="name">${escapeHtml(c.name)}${jaEnNameHTML(c.name)}</div>
           <div class="setline2 mono">${numberLine(c)}</div>
@@ -10038,7 +10045,7 @@ function renderWishlist(){
     return `
       <div class="slot" data-wid="${escapeHtml(w.id)}">
         <div class="art">
-          <div class="placeholder">${escapeHtml(w.name)}</div>
+          <div class="placeholder"><span>${escapeHtml(w.name)}</span></div>
           ${w.image ? `<img src="${escapeHtml(w.image)}" alt="${escapeHtml(w.name)}" onerror="this.style.display='none'">` : ''}
           <button class="wishremove" data-remove="${escapeHtml(w.id)}">✕</button>
         </div>
@@ -10808,7 +10815,7 @@ document.getElementById('loadSharedBtn').onclick = ()=>{
     <div class="mv-title">${escapeHtml(title)} (${data.items.length})</div>
     <div class="grid">${data.items.map((it,i) => `
       <div class="slot" style="cursor:default;">
-        <div class="art" data-import-idx="${i}"><div class="placeholder">${escapeHtml(it.n)}</div></div>
+        <div class="art" data-import-idx="${i}"><div class="placeholder"><span>${escapeHtml(it.n)}</span></div></div>
         <div class="foot">
           <div class="name">${escapeHtml(it.n)}</div>
           <div class="setline2 mono">${escapeHtml(it.s || '')}</div>
