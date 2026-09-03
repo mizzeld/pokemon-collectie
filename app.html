@@ -3097,6 +3097,13 @@ function sourceLinks(card){
   const q = encodeURIComponent(card.name.replace(/[⚠️()]/g,'').trim() + ' ' + (card.set||'').split('·')[0].trim());
   return {
     ebay: `https://www.ebay.com/sch/i.html?_nkw=${q}+psa`,
+    // Aparte link t.o.v. "ebay" hierboven -- die is bewust op PSA-gegradeerde
+    // exemplaren gericht (voor de gradeer-advies-sectie). Deze is voor "wat
+    // is er ECHT recent voor verkocht" (LH_Sold+LH_Complete = eBay's eigen
+    // filter voor afgelopen/verkochte veilingen) -- geen "+psa" erbij, want
+    // dan mis je alle ruwe verkopen. Gebruikt door recentSalesHTML() hieronder
+    // als het live-alternatief op de vaste, eenmalig onderzochte lijst.
+    ebaySold: `https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`,
     pricecharting: `https://www.pricecharting.com/search-products?q=${q}&type=prices`,
     tcgplayer: `https://www.tcgplayer.com/search/pokemon/product?q=${q}`
   };
@@ -5226,6 +5233,30 @@ function triggerPhotoUpdate(id){
     const dataUrl = await resizeImage(file);
     const c = collection.find(x=>x.id===photoUpdateTargetId);
     if(c){ c.photo = dataUrl; await saveCollection(); closeDetail(); render(); }
+  };
+  input.click();
+}
+
+// Tegenhanger van triggerPhotoUpdate() hierboven, maar voor een kaart in de
+// setoverzicht-catalogus (niet in de eigen collectie) die zelf nog geen foto
+// heeft -- slaat op via setCatalogPhoto() (zie applyCatalogPhotoOverrides()),
+// niet in `collection`. c is het kaartobject uit setDetailCards.cards.
+function triggerCatalogOwnPhoto(c){
+  if(!setDetailSet) return;
+  const input = document.createElement('input');
+  input.type='file'; input.accept='image/*';
+  input.onchange = async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const dataUrl = await resizeImage(file);
+    setCatalogPhoto(setDetailSet.id, c.number, dataUrl);
+    c.image = dataUrl;
+    c.ownPhoto = true;
+    // Zelfde kaartobject leeft ook in setDetailCards.cards/setDetailSortedCards
+    // (allemaal referenties naar dezelfde array-items) -- her-renderen laat de
+    // nieuwe foto meteen ook in de grid zien, niet alleen in dit detailschermpje.
+    renderSetDetailGrid();
+    openCatalogCard(c);
   };
   input.click();
 }
@@ -7549,6 +7580,45 @@ function saveCatalogHist(all){
 }
 function catalogHistKey(setId, number){ return setId + '-' + number; }
 
+// Eigen foto's voor kaarten die (nog) geen foto in de bron zelf hebben --
+// vooral relevant voor gloednieuwe Japanse sets waar TCGdex nog geen scans
+// van de community heeft (zie "foto volgt"-label in renderSetDetailGrid()).
+// Er is geen gratis bron die dag 1 al ALLE foto's heeft -- dat is een echt
+// tijdsprobleem (iemand moet de kaart eerst fysiek scannen), geen bug. Deze
+// override laat de gebruiker zelf een foto vastleggen van een kaart die ze
+// zelf in bezit hebben, ongeacht wat externe bronnen (nog) wel/niet hebben.
+// Zelfde opslagpatroon als loadCatalogHist()/saveCatalogHist() hierboven --
+// per (setId, kaartnummer), puur lokaal in localStorage.
+function loadCatalogPhotos(){
+  try{ return JSON.parse(localStorage.getItem('pkc_catalog_photos') || '{}'); }
+  catch(e){ return {}; }
+}
+function saveCatalogPhotos(all){
+  try{ localStorage.setItem('pkc_catalog_photos', JSON.stringify(all)); }catch(e){}
+}
+function catalogPhotoKey(setId, number){ return setId + '-' + number; }
+function getCatalogPhoto(setId, number){
+  return loadCatalogPhotos()[catalogPhotoKey(setId, number)] || null;
+}
+function setCatalogPhoto(setId, number, dataUrl){
+  const all = loadCatalogPhotos();
+  all[catalogPhotoKey(setId, number)] = dataUrl;
+  saveCatalogPhotos(all);
+}
+// Past opgeslagen eigen foto's toe op een net opgehaalde kaartenlijst -- alleen
+// voor kaarten die zelf nog geen c.image hebben (de bron-foto heeft altijd
+// voorrang: als TCGdex een set later alsnog van scans voorziet, moet die
+// "echte" foto de eigen foto vanzelf weer vervangen, niet andersom).
+function applyCatalogPhotoOverrides(setId, cards){
+  const stored = loadCatalogPhotos();
+  cards.forEach(c => {
+    if(!c.image){
+      const own = stored[catalogPhotoKey(setId, c.number)];
+      if(own){ c.image = own; c.ownPhoto = true; }
+    }
+  });
+}
+
 // Klein prijs-percentage-badge voor in de set-kaartenlijst (zoals op
 // PriceCharting: een groen/rood pijltje + %). Alleen echte data -- als er
 // geen 2+ opgeslagen historiepunten zijn voor deze kaart (curated top-10
@@ -8890,19 +8960,41 @@ function renderSetDetailGrid(){
 // Small "recently sold" list (date + price), mirroring PriceCharting's own
 // sold-listings table -- only rendered for cards we've individually
 // verified, never fabricated.
-function recentSalesHTML(setId, number){
+// BELANGRIJK (gevonden sept. 2026): deze rijtjes komen uit RECENT_SALES_SEED,
+// een EENMALIG (handmatig) onderzochte momentopname -- geen live databron.
+// Er bestaat geen gratis, permissieloze API die een lopend "recent verkocht"-
+// overzicht bijhoudt (PriceCharting's eigen API is betaald, eBay's
+// vergelijkbare "sold listings"-API vereist net als TCG Collector's API een
+// goedgekeurd zakelijk partnerschap). De datums in dit blok worden dus NOOIT
+// vanzelf actueel -- ze bevroren op het moment van onderzoek. Om dat niet als
+// "kijk, dít zijn de nieuwste verkopen" te laten ogen terwijl de datums
+// intussen weken oud kunnen zijn: label expliciet als momentopname, en geef
+// er een echte LIVE link naast (eBay's eigen "verkocht"-filter, ebaySoldLink
+// hieronder) voor wie de actuele situatie voor DEZE kaart wil checken.
+function recentSalesHTML(setId, number, ebaySoldLink){
   const rows = ((RECENT_SALES_SEED[setId] || {})[number]) || [];
-  if(!rows.length) return '';
   const fmtDate = d => {
     const dt = new Date(d + 'T00:00:00');
     return dt.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
   };
+  const liveBtn = ebaySoldLink
+    ? `<a href="${ebaySoldLink}" target="_blank" rel="noopener" class="addphotobtn" style="display:block; text-align:center; text-decoration:none; margin-top:${rows.length ? '8px' : '0'};">🔴 Bekijk actuele verkopen op eBay</a>`
+    : '';
+  if(!rows.length) return ebaySoldLink ? `
+    <div class="ladder-wrap" style="padding-top:0;">
+      <div class="ladder-title">Laatste verkopen</div>
+      <p style="font-size:12px; color:var(--muted); margin:0 0 0;">Voor deze kaart is nog geen momentopname onderzocht -- check hieronder de actuele situatie op eBay.</p>
+      ${liveBtn}
+    </div>` : '';
+  const newest = rows.map(r => r.date).sort().slice(-1)[0];
   return `
     <div class="ladder-wrap" style="padding-top:0;">
-      <div class="ladder-title">Laatste verkopen (PriceCharting)</div>
+      <div class="ladder-title">Verkopen rond ${fmtDate(newest)} (eenmalige momentopname, PriceCharting)</div>
+      <p style="font-size:11px; color:var(--muted); margin:0 0 6px;">Deze lijst is niet live -- ververst niet vanzelf. Voor de actuele situatie: check de knop hieronder.</p>
       <div class="recent-sales">
         ${rows.map(r => `<div class="recent-sale-row"><span class="mono">${fmtDate(r.date)}</span><span class="mono">${fmt(r.eur)}</span></div>`).join('')}
       </div>
+      ${liveBtn}
     </div>`;
 }
 
@@ -8968,6 +9060,16 @@ function openCatalogCard(c){
   const setLabel = (setDetailSet ? setDetailSet.name : '') + (c.number ? ' · #' + c.number : '');
   const links = sourceLinks({ name: c.name, set: setDetailSet ? setDetailSet.name : '' });
   const catHist = setDetailSet ? (loadCatalogHist()[catalogHistKey(setDetailSet.id, c.number)] || []) : [];
+  // Geen foto in de bron zelf (of alleen een eerder zelf toegevoegde) --
+  // geef de gebruiker de mogelijkheid er zelf een vast te leggen, i.p.v. te
+  // moeten wachten tot TCGdex de community-scan binnenkrijgt. Zie
+  // applyCatalogPhotoOverrides()/setCatalogPhoto() hierboven.
+  const ownPhotoBtnHTML = setDetailSet ? `
+    <button class="addphotobtn" id="ownCatalogPhotoBtn" style="display:block; width:calc(100% - 36px); margin:10px auto 0; text-align:center;">
+      ${c.ownPhoto ? '📷 Eigen foto vervangen' : '📷 Voeg je eigen foto toe'}
+    </button>
+    ${c.ownPhoto ? '<div class="ladder-note" style="padding:6px 18px 0; opacity:.7;">Dit is een foto die je zelf hebt toegevoegd (geen officiële scan) -- verdwijnt vanzelf zodra TCGdex een echte scan van deze kaart krijgt.</div>' : ''}
+  ` : '';
 
   document.getElementById('catalogCardSheet').innerHTML = `
     <div class="grabber"></div>
@@ -8990,8 +9092,9 @@ function openCatalogCard(c){
     </div>
     <button class="addphotobtn" id="checkLiveCatalogPrice" style="display:block; width:calc(100% - 36px); margin:10px auto 0; text-align:center;">🔄 Check live prijs</button>
     <div class="ladder-note" id="catalogLiveStatus" style="display:none; padding:6px 18px 0;"></div>
+    ${!c.image || c.ownPhoto ? ownPhotoBtnHTML : ''}
     ${catHist.length >= 1 ? trendSectionHTML('catTrend', catHist.length < 3 ? 'Prijsgeschiedenis wordt vanaf nu opgebouwd, elke keer dat je deze set bekijkt (max. 1 punt per dag) -- hoe langer je de app gebruikt, hoe langer deze lijn wordt.' : '') : ''}
-    ${setDetailSet ? recentSalesHTML(setDetailSet.id, c.number) : ''}
+    ${setDetailSet ? recentSalesHTML(setDetailSet.id, c.number, links.ebaySold) : ''}
     <div class="ladder-wrap" style="padding-top:0;">
       <div class="ladder-title">Live prijzen bekijken</div>
       <div style="display:flex; gap:8px;">
@@ -9007,6 +9110,8 @@ function openCatalogCard(c){
   initCard3D(document.querySelector('#catalogCardSheet .card3d-stage'));
   const liveBtn = document.getElementById('checkLiveCatalogPrice');
   if(liveBtn) liveBtn.onclick = ()=> checkLiveCatalogPrice(c);
+  const ownPhotoBtn = document.getElementById('ownCatalogPhotoBtn');
+  if(ownPhotoBtn) ownPhotoBtn.onclick = ()=> triggerCatalogOwnPhoto(c);
   if(catHist.length >= 1){
     trendState = { history: catHist, fallbackPsa10: c.psa10, timeframe: '3m', grade: 'raw' };
     renderTrendControls('catTrend');
@@ -9130,6 +9235,7 @@ async function openSetDetail(set){
     // overschrijven -- anders zie je de titel/logo van set B boven de
     // kaarten van set A (stille datamismatch, geen crash).
     if(setDetailSet !== set) return;
+    applyCatalogPhotoOverrides(set.id, cards.cards);
     setDetailCards = cards;
     renderSetDetailFilterPanel();
     renderSetDetailGrid();
@@ -10700,7 +10806,7 @@ function openDexCardInfo(idx){
     <button class="addphotobtn" id="checkLiveDexPrice" style="display:block; width:calc(100% - 36px); margin:10px auto 0; text-align:center;">🔄 Check live prijs</button>
     <div class="ladder-note" id="dexLiveStatus" style="display:none; padding:6px 18px 0;"></div>
     ${catHist.length >= 1 ? trendSectionHTML('dexTrend', catHist.length < 3 ? 'Prijsgeschiedenis wordt vanaf nu opgebouwd, elke keer dat je deze kaart bekijkt (max. 1 punt per dag).' : '') : ''}
-    ${c.setId ? recentSalesHTML(c.setId, c.number) : ''}
+    ${c.setId ? recentSalesHTML(c.setId, c.number, links.ebaySold) : ''}
     <div class="ladder-wrap" style="padding-top:0;">
       <div class="ladder-title">Live prijzen bekijken</div>
       <div style="display:flex; gap:8px;">
