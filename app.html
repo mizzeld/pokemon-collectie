@@ -2041,6 +2041,12 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
     background:var(--jg-panel-2); border:1px solid var(--jg-gold-dim); padding:5px 11px; border-radius:999px;
     white-space:nowrap;
   }
+  #jachtgidsMain .jg-upcoming-row.jg-upcoming-product .jg-upcoming-logo-ph{
+    font-family: ui-monospace, monospace; font-size:11px; font-weight:700; color:var(--jg-gold);
+  }
+  #jachtgidsMain .jg-upcoming-items{ font-size:12.5px; color:var(--jg-ink); margin:4px 0 0; line-height:1.5; }
+  #jachtgidsMain .jg-upcoming-uncertain{ color:var(--jg-muted); font-style:italic; }
+  #jachtgidsMain .jg-upcoming-source{ font-size:11px; color:var(--jg-muted); margin-top:8px; }
 
   #jachtgidsMain .jg-budget-panel{
     background:var(--jg-panel);
@@ -2417,6 +2423,7 @@ a.shop-product:hover{ transform:translateY(-2px); border-color:var(--muted2); }
       <p>Al aangekondigde sets die nog niet zijn uitgekomen, op volgorde van releasedatum — zodat je op tijd weet wanneer je moet sparen of pre-orderen. Alleen sets die de kaartendatabase zelf al kent met een echte datum; net aangekondigde sets zonder datum staan hier vaak pas later bij.</p>
     </div>
     <div id="jgUpcomingList"><p style="color:var(--jg-muted); font-size:13px;">Laden…</p></div>
+    <p class="jg-upcoming-source" id="jgUpcomingSourceNote"></p>
   </div>
 
   <div class="jg-section">
@@ -11917,10 +11924,52 @@ async function ensurePullRateSetLogos(){
 
   // "Binnenkort uit" -- gebruikt dezelfde setlijst als de rest van de app
   // (fetchAllSets(), pokemontcg.io met TCGdex-terugval), simpelweg gefilterd
-  // op een releasedatum die nog in de toekomst ligt. Geen losse, met de hand
-  // bijgehouden lijst met aankomende sets (die zou vrijwel meteen verouderen)
-  // -- dus soms leeg als een set nog te vers aangekondigd is om al met een
-  // datum in de database te staan, en dat is dan ook eerlijk zo.
+  // op een releasedatum die nog in de toekomst ligt. Sets die nog te vers
+  // aangekondigd zijn staan hier vaak pas later bij zodra de database zelf
+  // een datum kent.
+  //
+  // Voor "30 jaar Pokémon" (30th Celebration) is dat een probleem: dat komt
+  // niet als één losse "set" uit maar als een reeks PRODUCTEN (ETB, tin,
+  // battle deck, etc.) die elk op een eigen datum verschijnen -- iets wat de
+  // set-database van fetchAllSets() niet modelleert. Daarom een aparte,
+  // eenmalig met de hand onderzochte productkalender (zelfde transparante
+  // aanpak als PULL_RATE_SOURCE_DATE hierboven: gebrond, gedateerd, en
+  // duidelijk gelabeld zodat je weet dat het geen live data is).
+  //
+  // Bronnen (sep 2026): startmetpokemon.nl, josephwriteranderson.com,
+  // bulbapedia.bulbagarden.net en pokebeach.com -- kruisgecontroleerd.
+  // Belangrijk: er bestaat GEEN losse "Booster Box" voor deze release --
+  // losse boosters worden alleen verkocht ingepakt in de producten hieronder
+  // (ETB, bundels, tins, etc.), dus de eerste échte releasedatum is 16 sep.
+  const UPCOMING_PRODUCTS_SOURCE_DATE = '3 sep. 2026';
+  const UPCOMING_PRODUCTS = [
+    {
+      date: '2026/09/16',
+      label: '30 jaar Pokémon — eerste golf',
+      items: ['Elite Trainer Box', 'Pokémon Center Elite Trainer Box', 'Poster Collection', 'Tech Sticker Collection (2 varianten)', 'Pokémon ex Box (Sylveon-ex / Greninja-ex)', 'Knock Out Collection', '2-Pack Blister'],
+    },
+    {
+      date: '2026/10/02',
+      label: '30 jaar Pokémon — tweede golf',
+      items: ['Binder Collection', 'Booster Bundle', 'Day & Night Mini Tins'],
+    },
+    {
+      date: '2026/10/30',
+      label: '30 jaar Pokémon — Battle Decks',
+      items: ['Espeon ex Battle Deck', 'Umbreon ex Battle Deck'],
+    },
+    {
+      date: '2026/11/06',
+      label: '30 jaar Pokémon — Premium Collections',
+      items: ['Ultra-Premium Collection (Day & Night)', 'Ditto Premium Collection', 'Mew/Mewtwo Figure Collections'],
+    },
+    {
+      date: '2026/12/04',
+      label: '30 jaar Pokémon — nog niet zeker',
+      items: ['Pokémon ex Tin'],
+      uncertain: true,
+    },
+  ];
   function formatUpcomingCountdown(days){
     if(days <= 0) return 'vandaag';
     if(days === 1) return 'morgen';
@@ -11935,45 +11984,90 @@ async function ensurePullRateSetLogos(){
     const maanden = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
     return `${d} ${maanden[m-1]} ${y}`;
   }
+  function parseUpcomingDate(str){
+    const [y,m,d] = str.split('/').map(Number);
+    if(!y || !m || !d) return null;
+    return new Date(y, m-1, d);
+  }
   async function renderUpcomingSets(){
     const list = document.getElementById('jgUpcomingList');
+    const sourceNote = document.getElementById('jgUpcomingSourceNote');
     if(!list) return;
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Handmatige productkalender (30 jaar Pokémon) -- altijd meenemen, los van
+    // of de API-call hieronder lukt.
+    const productEntries = UPCOMING_PRODUCTS
+      .map(p => {
+        const date = parseUpcomingDate(p.date);
+        if(!date) return null;
+        return { kind: 'product', product: p, date };
+      })
+      .filter(x => x && x.date > today);
+
+    let setEntries = [];
+    let loadError = null;
     try{
       const sets = await fetchAllSets();
-      const today = new Date(); today.setHours(0,0,0,0);
-      const upcoming = sets
+      setEntries = sets
         .map(s => {
           if(!s.releaseDate) return null;
-          const [y,m,d] = s.releaseDate.split('/').map(Number);
-          if(!y || !m || !d) return null;
-          const date = new Date(y, m-1, d);
-          return { set: s, date };
+          const date = parseUpcomingDate(s.releaseDate);
+          if(!date) return null;
+          return { kind: 'set', set: s, date };
         })
-        .filter(x => x && x.date > today)
-        .sort((a,b) => a.date - b.date);
+        .filter(x => x && x.date > today);
+    }catch(e){
+      loadError = e;
+    }
 
-      if(upcoming.length === 0){
-        list.innerHTML = `<p style="color:var(--jg-muted); font-size:13px;">Geen aangekondigde sets bekend die nog niet zijn uitgekomen — check later nog eens, dit wordt vaak pas dicht bij de releasedatum toegevoegd.</p>`;
-        return;
-      }
-      list.innerHTML = `<div class="jg-upcoming-list">${upcoming.map(({set, date}) => {
-        const days = Math.ceil((date - today) / (1000*60*60*24));
-        const logo = set.images && set.images.logo;
+    const upcoming = [...productEntries, ...setEntries].sort((a,b) => a.date - b.date);
+
+    if(sourceNote){
+      sourceNote.textContent = productEntries.length
+        ? `Productkalender "30 jaar Pokémon" met de hand onderzocht en gebrond (startmetpokemon.nl, bulbapedia, pokebeach), bijgewerkt ${UPCOMING_PRODUCTS_SOURCE_DATE}. Losse sets komen automatisch uit de kaartendatabase.`
+        : '';
+    }
+
+    if(upcoming.length === 0){
+      list.innerHTML = loadError
+        ? `<p style="color:var(--red); font-size:13px;">Kon de setlijst niet laden: ${escapeHtml(loadError.message||loadError)}</p>`
+        : `<p style="color:var(--jg-muted); font-size:13px;">Geen aangekondigde sets bekend die nog niet zijn uitgekomen — check later nog eens, dit wordt vaak pas dicht bij de releasedatum toegevoegd.</p>`;
+      return;
+    }
+
+    list.innerHTML = `<div class="jg-upcoming-list">${upcoming.map(entry => {
+      const days = Math.ceil((entry.date - today) / (1000*60*60*24));
+      if(entry.kind === 'product'){
+        const p = entry.product;
         return `
-          <div class="jg-upcoming-row">
-            <div class="jg-upcoming-logo">${logo ? logoImgHTML(logo, set.name) : `<div class="jg-upcoming-logo-ph">${escapeHtml(set.name)}</div>`}</div>
+          <div class="jg-upcoming-row jg-upcoming-product">
+            <div class="jg-upcoming-logo"><div class="jg-upcoming-logo-ph">30 JAAR</div></div>
             <div class="jg-upcoming-info">
-              <h4>${escapeHtml(set.name)}</h4>
-              <div class="jg-upcoming-date">${formatUpcomingDate(set.releaseDate)}</div>
+              <h4>${escapeHtml(p.label)}</h4>
+              <div class="jg-upcoming-date">${formatUpcomingDate(p.date)}</div>
+              <div class="jg-upcoming-items">${p.items.map(escapeHtml).join(' · ')}</div>
+              ${p.uncertain ? `<div class="jg-upcoming-uncertain">Deze datum staat maar in één bron — onder voorbehoud.</div>` : ''}
             </div>
             <div class="jg-upcoming-badge">${formatUpcomingCountdown(days)}</div>
           </div>`;
-      }).join('')}</div>`;
-    }catch(e){
-      list.innerHTML = `<p style="color:var(--red); font-size:13px;">Kon de setlijst niet laden: ${escapeHtml(e.message||e)}</p>`;
-    }
+      }
+      const set = entry.set;
+      const logo = set.images && set.images.logo;
+      return `
+        <div class="jg-upcoming-row">
+          <div class="jg-upcoming-logo">${logo ? logoImgHTML(logo, set.name) : `<div class="jg-upcoming-logo-ph">${escapeHtml(set.name)}</div>`}</div>
+          <div class="jg-upcoming-info">
+            <h4>${escapeHtml(set.name)}</h4>
+            <div class="jg-upcoming-date">${formatUpcomingDate(set.releaseDate)}</div>
+          </div>
+          <div class="jg-upcoming-badge">${formatUpcomingCountdown(days)}</div>
+        </div>`;
+    }).join('')}</div>`;
   }
   window.renderUpcomingSets = renderUpcomingSets; // switchView() (buiten deze IIFE) roept dit aan zodra de Jachtgids-pagina opent
+  window.UPCOMING_PRODUCTS = UPCOMING_PRODUCTS; // testbaarheid (zelfde patroon als renderUpcomingSets hierboven)
+  window.UPCOMING_PRODUCTS_SOURCE_DATE = UPCOMING_PRODUCTS_SOURCE_DATE;
 })();
 
 /* ============================= INIT ============================= */
